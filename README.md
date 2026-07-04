@@ -1,5 +1,12 @@
 # repo-trust
 
+<!-- repo-trust:start -->
+[![security](https://github.com/PabloPereiraBalestra/repo-trust/actions/workflows/security.yml/badge.svg)](https://github.com/PabloPereiraBalestra/repo-trust/actions/workflows/security.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/PabloPereiraBalestra/repo-trust/badge)](https://scorecard.dev/viewer/?uri=github.com/PabloPereiraBalestra/repo-trust)
+
+Cada release incluye su SBOM (CycloneDX) como asset.
+<!-- repo-trust:end -->
+
 Skill de Claude Code para instalar señales de confianza públicas y verificables en un repositorio de GitHub:
 
 - Escaneo de seguridad en CI (vulnerabilidades, secretos y licencias) con resultados visibles en la pestaña Security del repo.
