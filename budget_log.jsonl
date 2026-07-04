@@ -6,3 +6,4 @@
 {"t":"block","ts":"2026-07-04T09:30:00-03:00","tag":"MECHANICAL","size":"M","model":"claude-sonnet-5","est":12,"actual":null,"start_pct":null,"end_pct":null,"commit":"e3aeb56","clean":true}
 {"t":"block","ts":"2026-07-04T09:40:00-03:00","tag":"MECHANICAL","size":"S","model":"claude-sonnet-5","est":6,"actual":null,"start_pct":null,"end_pct":null,"commit":null,"clean":true}
 {"t":"block","ts":"2026-07-04T09:45:00-03:00","tag":"DESIGN","size":"S","model":"claude-sonnet-5","est":5,"actual":null,"start_pct":null,"end_pct":null,"commit":"e3aeb56","clean":true}
+{"t":"block","ts":"2026-07-04T12:55:00-03:00","tag":"MECHANICAL","size":"S","model":"Sonnet 5","est":5,"actual":7,"start_pct":32,"end_pct":39,"commit":"decd340","clean":true}
