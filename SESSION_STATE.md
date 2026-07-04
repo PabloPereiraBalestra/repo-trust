@@ -28,6 +28,9 @@ Backlog source: REPO_TRUST_SPEC.md §5 kickoff, applied to this same repo (repo-
 2 non-null actuals so far (S/Sonnet 5 = 7, 1) — below the 5-sample minimum for a per-bucket median, so still using defaults: S=5 M=12 L=25 | buffer=10 cap=20.
 Snapshot now usable (fresh, non-null rate_limits, written after this session's start) — **auto mode** for the push and release blocks: go/no-go computed from usage_snapshot.json, real start/end_pct logged. Prior manual-mode entries above are left as-is per user instruction.
 
+## Version sync
+- 2026-07-04: CLAUDE.md protocol section resynced from session-budget's canonical `references/SPEC.md` (v13) per the §0.1 version sync rule — was stale since B0 (missing ctx≥60 context-cut rule, corrections mechanism, spans_reset calibration exclusion, session_id staleness refinement). No file-content changes beyond the protocol section; no approval needed per spec.
+
 ## repo-trust backlog: complete
 All 7 blocks (preflight, resolve, write, local-tests, commit, push+post-push-tests, release+SBOM-test) done. §4 acceptance tests 1-10 all pass. Branch protection (§1.6) declined for now — revisit later if desired. Known deviation from a "normal" repo-trust install: this repo has no package manifests, so the SBOM has 0 components and the license scan has nothing to scan — accepted by the user at the preflight block; secret scanning and Scorecard deliver full value regardless.
 
