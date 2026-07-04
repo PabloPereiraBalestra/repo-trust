@@ -4,11 +4,6 @@ Backlog source: REPO_TRUST_SPEC.md §5 kickoff, applied to this same repo (repo-
 
 ## Pending blocks
 <!-- ordered by dependency: [TAG] size est_points — description | dep -->
-- [MECHANICAL] S 6 — Preflight §0 of REPO_TRUST_SPEC.md on repo-trust: system/env/visibility/default-branch (now `main`)/ecosystem checks, no file writes | dep: diagnostic block
-- [MECHANICAL] M 14 — Resolve volatile data §0.3 against official sources (action SHAs/tags, trivy-action inputs, scorecard publish_results restrictions, badge URL format, dependabot ecosystem key); show resolved table | dep: preflight block
-- [MECHANICAL] M 12 — Write §1 deliverables (security.yml, scorecard.yml, README badge block, dependabot.yml, SECURITY.md), idempotent | dep: resolve block
-- [MECHANICAL] S 6 — Run §4 local acceptance tests (non-push) + idempotency re-run | dep: write block
-- [DESIGN] S 5 — Show full diff, get user OK, commit; ask about optional branch protection (§1.6) | dep: local-tests block
 - [MECHANICAL] S 5 — Push to origin/main; run §4 post-push tests 8 (security workflow completes, findings in Security tab) and 9 (Scorecard run green, badge returns 200, viewer shows score) | dep: commit block
 - [MECHANICAL] S 5 — Create test release v0.1.0; run §4 test 10 (sbom.cdx.json attached as release asset, parses as JSON with bomFormat CycloneDX) | dep: push block
 
@@ -20,6 +15,11 @@ Backlog source: REPO_TRUST_SPEC.md §5 kickoff, applied to this same repo (repo-
 - [MECHANICAL] M — B0: bootstrap session-budget deliverables for repo-trust (CLAUDE.md protocol section, SESSION_STATE.md, budget_log.jsonl, .claude/agents/implementer.md) | commit b06471d | session % n/a (manual mode) | actual points null
 - [MECHANICAL] S — Statusline diagnostic: verified statusLine wired in settings.json with valid absolute path, ran statusline.ps1 manually with mock stdin JSON, confirmed it writes usage_snapshot.json correctly. Root cause of the earlier absence: no live render had occurred yet since the last cleanup deletion (from a prior install/test run) at the moment of the first preflight check in this conversation — the file appeared on its own once this session's TUI produced its first live render (1321 bytes, mid-session, before the manual test). Not a bug: mechanism works as designed (§3.7 — rewritten on every render). Fix applied: deleted the mock-data snapshot my manual test wrote, so the next live render regenerates it from real data (same mandatory-cleanup rule as §4 tests). | commit n/a (diagnostic only, no repo file changes) | session % n/a (manual mode) | actual points null
 - [MECHANICAL] — Branch rename: local `master`→`main`, pushed, GitHub default branch set to `main` via `gh repo edit --default-branch main`, old remote `master` deleted. Verified via `gh repo view --json defaultBranchRef`. | commit n/a (git/GitHub admin, no file changes) | session % n/a (manual mode) | actual points null
+- [MECHANICAL] S — Preflight §0 of REPO_TRUST_SPEC.md on repo-trust: no §1 deliverables existed yet (full install), remote/owner-repo confirmed, gh auth OK, visibility PUBLIC, default branch main, no package manifests (user confirmed proceeding despite thin SBOM/license-scan), no pre-existing workflows | commit n/a (no file changes) | session % n/a (manual mode) | actual points null
+- [MECHANICAL] M — Resolve volatile data §0.3: live-resolved SHA+tag for actions/checkout, aquasecurity/trivy-action, github/codeql-action/upload-sarif, softprops/action-gh-release, ossf/scorecard-action, actions/upload-artifact; confirmed trivy-action `scanners` input + severity/exit-code/ignore-unfixed/format; confirmed scorecard-action publish_results restrictions (all satisfied by spec template); confirmed badge URL formats; confirmed dependabot `github-actions` key. Table shown and confirmed by user. | commit n/a (research only, no file changes) | session % n/a (manual mode) | actual points null
+- [MECHANICAL] M — Write §1 deliverables: security.yml, scorecard.yml, dependabot.yml, SECURITY.md, README badge block, using block-2 resolved values | commit e3aeb56 (staged together with local-tests + commit block) | session % n/a (manual mode) | actual points null
+- [MECHANICAL] S — Run §4 local acceptance tests: 1 (YAML valid), 2 (full 40-char SHA + tag comment), 3 (gate + release-gated sbom job), 4 (scorecard restrictions programmatically verified), 5 (README badges render, owner/repo substituted), 6 (dependabot parses, github-actions covered), 7 (idempotency — re-ran the actual install logic a second time, `git diff` empty, exit 0) | commit n/a (verification only) | session % n/a (manual mode) | actual points null
+- [DESIGN] S — Diff reviewed and shown in full; user confirmed commit; user declined optional branch protection (§1.6) for now (solo maintainer, can revisit later) | commit e3aeb56 | session % n/a (manual mode) | actual points null
 
 ## Cost calibration
 <!-- medians by (size, model) from budget_log.jsonl, e.g. S/Sonnet=4, M/Sonnet=9, M/Fable=14 -->
@@ -32,5 +32,6 @@ Session running in **manual mode**: usage_snapshot.json exists transiently (rege
 - Default branch is now `main` (renamed from `master`, remote updated, GitHub default branch updated). Preflight block for the trust spec will detect `main` correctly.
 - Two source specs live outside the repo: C:\Users\pablo\OneDrive\Downloads\REPO_TRUST_SPEC.md and SESSION_BUDGET_SPEC.md.
 - B0 done (commit b06471d). Statusline diagnostic done (no code changes; mechanism confirmed working). Branch rename done.
-- Next: preflight block (trust spec §0 on repo-trust), then resolve/write/test/commit blocks, then push+post-push-tests block, then release+SBOM-test block.
+- Trust-spec preflight, resolve, write, local-tests, and commit blocks all done (commit e3aeb56). Branch protection declined for now.
+- Next: push to origin/main + post-push tests 8/9, then test release v0.1.0 + test 10 (SBOM asset).
 - Manual mode: stop after every block for user go-ahead.
