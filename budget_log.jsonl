@@ -1,0 +1,3 @@
+{"t":"block","ts":"2026-07-03T21:00:00-03:00","tag":"MECHANICAL","size":"M","model":"claude-sonnet-5","est":12,"actual":null,"start_pct":null,"end_pct":null,"commit":"b06471d","clean":true}
+{"t":"block","ts":"2026-07-03T21:08:00-03:00","tag":"MECHANICAL","size":"S","model":"claude-sonnet-5","est":5,"actual":null,"start_pct":null,"end_pct":null,"commit":null,"clean":true}
+{"t":"block","ts":"2026-07-03T21:10:00-03:00","tag":"MECHANICAL","size":"S","model":"claude-sonnet-5","est":5,"actual":null,"start_pct":null,"end_pct":null,"commit":null,"clean":true}
