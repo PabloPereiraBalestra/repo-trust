@@ -7,3 +7,5 @@
 {"t":"block","ts":"2026-07-04T09:40:00-03:00","tag":"MECHANICAL","size":"S","model":"claude-sonnet-5","est":6,"actual":null,"start_pct":null,"end_pct":null,"commit":null,"clean":true}
 {"t":"block","ts":"2026-07-04T09:45:00-03:00","tag":"DESIGN","size":"S","model":"claude-sonnet-5","est":5,"actual":null,"start_pct":null,"end_pct":null,"commit":"e3aeb56","clean":true}
 {"t":"block","ts":"2026-07-04T12:55:00-03:00","tag":"MECHANICAL","size":"S","model":"Sonnet 5","est":5,"actual":7,"start_pct":32,"end_pct":39,"commit":"decd340","clean":true}
+{"t":"block","ts":"2026-07-04T13:10:00-03:00","tag":"MECHANICAL","size":"S","model":"Sonnet 5","est":5,"actual":1,"start_pct":41,"end_pct":42,"commit":null,"clean":true}
+{"t":"session_end","ts":"2026-07-04T13:12:00-03:00","end_pct":42,"cut_reason":"work_done","blocks_done":9,"buffer":10,"cap":20,"mode":"auto"}
