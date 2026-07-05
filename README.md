@@ -4,7 +4,22 @@
 [![security](https://github.com/PabloPereiraBalestra/repo-trust/actions/workflows/security.yml/badge.svg)](https://github.com/PabloPereiraBalestra/repo-trust/actions/workflows/security.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/PabloPereiraBalestra/repo-trust/badge)](https://scorecard.dev/viewer/?uri=github.com/PabloPereiraBalestra/repo-trust)
 
-Cada release incluye su SBOM (CycloneDX) como asset.
+Cada release incluye su SBOM (CycloneDX) como asset, con provenance atestada (SLSA).
+
+<details><summary>Verificalo vos mismo</summary>
+
+```sh
+# Score de Scorecard (tercero independiente, criterios públicos)
+curl -s https://api.scorecard.dev/projects/github.com/PabloPereiraBalestra/repo-trust | jq .score
+
+# SBOM del último release
+gh release download --repo PabloPereiraBalestra/repo-trust --pattern 'sbom.cdx.json'
+
+# Provenance del SBOM (quién lo construyó, en qué workflow, desde qué commit)
+gh attestation verify sbom.cdx.json --repo PabloPereiraBalestra/repo-trust
+```
+
+</details>
 <!-- repo-trust:end -->
 
 Skill de Claude Code para instalar señales de confianza públicas y verificables en un repositorio de GitHub:

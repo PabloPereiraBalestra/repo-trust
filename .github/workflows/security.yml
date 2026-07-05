@@ -1,4 +1,4 @@
-# repo-trust:security v1
+# repo-trust:security v2
 name: security
 on:
   push:
@@ -41,6 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Generate CycloneDX SBOM
@@ -50,6 +52,10 @@ jobs:
           scan-ref: '.'
           format: 'cyclonedx'
           output: 'sbom.cdx.json'
+      - name: Attest SBOM build provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: 'sbom.cdx.json'
       - name: Attach SBOM to release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         with:
