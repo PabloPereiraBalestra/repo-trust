@@ -1,4 +1,6 @@
-# Repo Trust System — Implementation Spec (v1)
+# Repo Trust System — Implementation Spec (v2-draft)
+
+> v2-draft (2026-07-05): adds §5.1 schematic report format. Pending v2 work: operate & advise flow, release attestations, score history. v1 behavior is unchanged where this draft doesn't say otherwise.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
@@ -246,7 +248,62 @@ Run all that don't require a push locally; report the rest as pending-first-push
 
 ---
 
-## 5. Operating prompts
+## 5. Report format & operating prompts
+
+### 5.1 Schematic report format
+
+Every user-facing output of this system — install report, audit report, LinkedIn trust block — uses one schematic format instead of prose: glyph-led lines grouped under short headers, scannable in a glance. Explanatory prose, when needed, goes after the report block, never inside it.
+
+**Glyph vocabulary (fixed):**
+
+| Glyph | Meaning | Use when |
+|---|---|---|
+| ✅ | pass | check verified live and healthy |
+| ⚠️ | degraded / warning | works with a stated limitation: thin SBOM (§3.3), first-publish lag (§3.4), structurally low checks (§3.2), pending post-push tests |
+| ❌ | fail | gate red, badge dead, deliverable missing, or a live read that should work failed |
+| ➖ | not applicable | check cannot apply to this repo and that is acceptable (e.g. license scan with no package manifests) |
+
+Rules:
+
+- Every line: glyph first, one short clause, then the value/link if any.
+- Never soften ❌ into ⚠️. Degraded means "working with a stated limitation"; failing means failing. Same honesty rule as the badge (trust model above): the remediation is fixing or opening an issue, never re-labeling.
+- ⚠️ and ➖ lines carry their reason in the same line, one clause ("⚠️ SBOM delgado — repo sin manifests de paquetes").
+- Private repo (§3.1): Scorecard/badge lines render ❌ with "repo privado — modo degradado, sin score público"; scan lines stay live via the Security tab. This IS the degraded-mode report; no separate format.
+- Labels in Spanish (repo audience); glyphs carry the state, so the format survives translation.
+
+**Group headers (fixed order; omit a group only if all its lines would be ➖):**
+
+1. `Escaneo` — security workflow state, Trivy CRITICAL/HIGH counts, secrets
+2. `Scorecard` — score, badge liveness, weakest checks
+3. `SBOM · Release` — latest release, SBOM asset presence/validity
+4. `Política` — SECURITY.md, dependabot, branch protection, license posture
+
+**The three report types:**
+
+1. **Install report** (end of kickoff): one line per §1 deliverable — created / already present (➖ with "ya instalado") / skipped with reason — then each pending post-push test as a ⚠️ line.
+2. **Audit report**: one line per live check under the four headers, closing with a single drift line (✅ `sin deriva respecto del spec` or ❌ + what drifted).
+3. **LinkedIn trust block**: at most 4 glyph-led lines in Spanish, built exclusively from live reads: score with public-viewer link, latest release with SBOM link, what is scanned, and (once attestations exist) a provenance/verify line. Feed constraints: LinkedIn strips markdown — glyphs, plain text and bare URLs only. A datum that cannot be read live is omitted and the omission stated, never reconstructed from memory.
+
+**Example (audit report):**
+
+```
+Escaneo
+✅ workflow security verde (main)
+✅ 0 hallazgos CRITICAL/HIGH
+Scorecard
+✅ score 5.8 — badge vivo → https://scorecard.dev/viewer/?uri=github.com/{owner}/{repo}
+⚠️ checks débiles: code-review, branch-protection — mantenedor solo (§3.2)
+SBOM · Release
+✅ v0.1.0 con sbom.cdx.json válido
+Política
+✅ SECURITY.md presente, dependabot activo
+➖ licencias — sin manifests de paquetes
+✅ sin deriva respecto del spec
+```
+
+### 5.2 Operating prompts
+
+*(Prose-format prompts below predate §5.1; their outputs must already be emitted in the §5.1 format. The prompt texts themselves are rewritten in a later v2 change.)*
 
 Kickoff (once per repo):
 
