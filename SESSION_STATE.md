@@ -6,8 +6,7 @@ Backlog source: BACKLOG.md (repo root) | confirmed by user on 2026-07-05. (Previ
 <!-- ordered by dependency: [TAG] size est_points — description | dep -->
 <!-- confirmed by user 2026-07-05 ("ok") -->
 <!-- R1 started 2026-07-05 (moved to In progress) -->
-- [MECHANICAL] S 3 — Push pending commits to origin/main + post-push checks (workflow security verde con el nuevo attest job definido, scorecard corre). Outward-facing: user go required. | dep: none (all local work done)
-- [MECHANICAL] S 3 — Test release (v0.2.0) para tests §4 10/11: SBOM attached + `gh attestation verify` exits 0. Outward-facing: user go required. | dep: push block
+- [MECHANICAL] S 3 — Test release (v0.2.0) para tests §4 10/11: SBOM attached + `gh attestation verify` exits 0. Outward-facing: user go required (explanation of implications given 2026-07-05, awaiting decision). | dep: none (push done)
 - [MECHANICAL] S 2 — .gitattributes: `scorecard_history.jsonl text eol=lf` (evitar CRLF en appends futuros del historial). Discovered in D2. | dep: none
 
 Gated (not scoped into blocks yet — awaiting user input):
@@ -20,6 +19,7 @@ Gated (not scoped into blocks yet — awaiting user input):
 ## Completed
 <!-- [TAG] size — description | commit <hash> | session % start→end | actual points -->
 - [DESIGN] M — Planning round 2: BACKLOG.md triage against north star, 5 Fable-sourced candidates added, design calls made (report format, operate/advise flow, attestations-in / CodeQL-deferred / richer-SBOM-dropped), 7 blocks scoped into pending. Confirmed by user. | commit d695d95 | session % 25→37 | actual points 12
+- [MECHANICAL] S — Push a920544..: 14 commits (spec v2-draft completo, security.yml marker v2 con attest, README verify-yourself, scorecard_history.jsonl). Post-push: security ✅, scorecard ✅, badge 200. Hallazgo: workflow CodeQL corrió y dio success — NO instalado por repo-trust (default setup de GitHub habilitado a nivel repo, externo al spec). | commit a920544 (pushed head) | session % 30→44 | actual points 14 but PARALLEL (incluye actividad de otras sesiones)
 - [MECHANICAL] S — D2: scorecard_history.jsonl seeded with first live observation — score 5.4 (DOWN from 5.8 at install: audit-worthy), weakest recorded Branch-Protection/CII-Best-Practices/Code-Review = 0 (8 checks tied at 0, alphabetical slice; CI-Tests and Packaging = -1 excluded as N/A). Implementer, Fable override. | commit f93a413 | session % 24→27 | actual points 3 but PARALLEL (session-budget session active)
 - [MECHANICAL] M — A2: security.yml marker v1→v2 — attest-build-provenance v4.1.1 SHA-pinned (resolved live), id-token+attestations perms on sbom job only; README verify-yourself block ({owner}/{repo} sustituido); tests locales 1,2,3,5,7 PASS; tests 10/11 pending release. Implementer, Fable override. | commit 9284275 | session % 19→24 | actual points 5 but PARALLEL (session-budget session active)
 - [MECHANICAL] S — R3: §5.2 prompts rewritten to the v2 flow (kickoff = A+B+C, audit = B+C with §5.1 output + §5.3 append, trust block = ≤4 glyph plain-text lines, positive-only trend, verify one-liner). Delegated to implementer with Fable override (user-approved window plan). | commit 41e1643 | session % 16→19 | actual points 3
