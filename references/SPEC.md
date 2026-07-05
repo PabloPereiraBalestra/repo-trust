@@ -1,6 +1,6 @@
 # Repo Trust System — Implementation Spec (v2-draft)
 
-> v2-draft (2026-07-05): adds §5.1 schematic report format. Pending v2 work: operate & advise flow, release attestations, score history. v1 behavior is unchanged where this draft doesn't say otherwise.
+> v2-draft (2026-07-05): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block. Pending v2 work: §5.2 prompt rewrite, score history. v1 behavior is unchanged where this draft doesn't say otherwise.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
@@ -23,13 +23,21 @@ Verify each §1 deliverable:
 
 | Deliverable | Check |
 |---|---|
-| `.github/workflows/security.yml` | exists AND contains marker `# repo-trust:security v1` |
-| `.github/workflows/scorecard.yml` | exists AND contains marker `# repo-trust:scorecard v1` |
+| `.github/workflows/security.yml` | exists AND contains marker `# repo-trust:security` (current version: v2) |
+| `.github/workflows/scorecard.yml` | exists AND contains marker `# repo-trust:scorecard` (current version: v1) |
 | README badges block | markers `<!-- repo-trust:start -->` / `<!-- repo-trust:end -->` present |
 | `.github/dependabot.yml` | exists (any content counts; merge, don't clobber) |
 | `SECURITY.md` | exists at repo root |
 
 If ANY item is missing, installation covers only the missing items. Re-running the full installation on an installed repo must be a no-op (§4 test 7).
+
+**Marker version upgrade semantics.** The two workflow files are wholly owned by repo-trust (they exist only because this system wrote them); the README block is owned only between its markers. Upgrade rules:
+
+- Workflow marker version **older** than this spec's template → rewrite the whole file from the current §1 template (report it as an upgrade in the install report, old → new version). Never patch it line-by-line.
+- Workflow marker version **equal** → no-op (idempotency, §4 test 7).
+- Marker version **newer** than this spec's template → STOP and report: the repo was installed by a newer spec; do not downgrade.
+- README block: replace content between markers with the current §1.3 template (unchanged v1 behavior — the markers carry no version; the block content is always current-template).
+- Files without any repo-trust marker: never touched, no exceptions (§3.6).
 
 ### 0.2 Environment check
 
@@ -53,6 +61,8 @@ Nothing marked `<RESOLVE>` in §1 may be written from memory. Resolve each again
 | scorecard-action `publish_results` workflow restrictions (approved steps list, permissions rules) | scorecard-action README |
 | GitHub Actions workflow badge URL format | GitHub Actions docs |
 | dependabot.yml `package-ecosystem` key for each detected ecosystem | GitHub Dependabot docs |
+| `actions/attest-build-provenance` latest release tag + commit SHA, input names (`subject-path`), required permissions (`id-token: write`, `attestations: write`) | github.com/actions/attest-build-provenance (releases + README) |
+| `gh attestation verify` exact syntax (flags for owner/repo) and public-repo verifiability conditions | GitHub artifact-attestations docs |
 
 All third-party actions are pinned by **full commit SHA** with the version tag as a trailing comment. This is both supply-chain hygiene and rewarded by Scorecard's dependency-pinning check (confirm exact check name in scorecard docs/checks.md when resolving).
 
@@ -65,7 +75,7 @@ All idempotent: check before create, merge before write, never clobber user cont
 ### 1.1 `.github/workflows/security.yml`
 
 ```yaml
-# repo-trust:security v1
+# repo-trust:security v2
 name: security
 on:
   push:
@@ -108,6 +118,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@<RESOLVE:sha> # <RESOLVE:tag>
       - name: Generate CycloneDX SBOM
@@ -117,13 +129,17 @@ jobs:
           scan-ref: '.'
           format: 'cyclonedx'
           output: 'sbom.cdx.json'
+      - name: Attest SBOM build provenance
+        uses: actions/attest-build-provenance@<RESOLVE:sha> # <RESOLVE:tag>
+        with:
+          subject-path: 'sbom.cdx.json'
       - name: Attach SBOM to release
         uses: softprops/action-gh-release@<RESOLVE:sha> # <RESOLVE:tag>
         with:
           files: sbom.cdx.json
 ```
 
-Design decisions (fixed, do not renegotiate per repo): gate fails on CRITICAL/HIGH with `ignore-unfixed: true`; SARIF uploads even when the gate fails (`if: always()`); SBOM is generated per release, not per push.
+Design decisions (fixed, do not renegotiate per repo): gate fails on CRITICAL/HIGH with `ignore-unfixed: true`; SARIF uploads even when the gate fails (`if: always()`); SBOM is generated per release, not per push; the SBOM is attested with GitHub-native SLSA build provenance (`attest-build-provenance`) **before** it is attached, so every published SBOM asset is verifiable with `gh attestation verify` — GitHub-native attestations over Sigstore/cosign because they need no key management, are free on public repos, and the verify command is a one-liner a stranger can run. Attestation of provenance only covers assets this workflow produces (the SBOM); user-uploaded release assets are out of scope.
 
 ### 1.2 `.github/workflows/scorecard.yml`
 
@@ -174,14 +190,31 @@ jobs:
 
 Insert between markers; if markers exist, replace the content between them (upgrade path), never append a second copy. Place directly under the H1 title.
 
-```markdown
+````markdown
 <!-- repo-trust:start -->
 [![security](<RESOLVE:actions-badge-url>)](https://github.com/{owner}/{repo}/actions/workflows/security.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/{owner}/{repo}/badge)](https://scorecard.dev/viewer/?uri=github.com/{owner}/{repo})
 
-Cada release incluye su SBOM (CycloneDX) como asset.
-<!-- repo-trust:end -->
+Cada release incluye su SBOM (CycloneDX) como asset, con provenance atestada (SLSA).
+
+<details><summary>Verificalo vos mismo</summary>
+
+```sh
+# Score de Scorecard (tercero independiente, criterios públicos)
+curl -s https://api.scorecard.dev/projects/github.com/{owner}/{repo} | jq .score
+
+# SBOM del último release
+gh release download --repo {owner}/{repo} --pattern 'sbom.cdx.json'
+
+# Provenance del SBOM (quién lo construyó, en qué workflow, desde qué commit)
+gh attestation verify sbom.cdx.json --repo {owner}/{repo}
 ```
+
+</details>
+<!-- repo-trust:end -->
+````
+
+The verify-yourself block exists because a checkable claim is categorically more credible than an asserted one — it is part of the block between markers, so it upgrades with the block (§0.1). Exact `gh` syntax is `<RESOLVE>`-class: confirm against current docs at install time (§0.3). On repos without attestations installed yet (marker < v2), omit the provenance line and command.
 
 ### 1.4 `.github/dependabot.yml`
 
@@ -237,14 +270,15 @@ Run all that don't require a push locally; report the rest as pending-first-push
 
 1. Both workflow files parse as valid YAML (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" <file>`).
 2. Every third-party action reference is a full 40-char SHA with a tag comment.
-3. `security.yml` contains the gate (`severity: 'CRITICAL,HIGH'`, `exit-code: '1'`) and the release-gated `sbom` job.
+3. `security.yml` contains the gate (`severity: 'CRITICAL,HIGH'`, `exit-code: '1'`) and the release-gated `sbom` job with the attest step (`subject-path: 'sbom.cdx.json'`) and `id-token: write` + `attestations: write` permissions on that job only.
 4. `scorecard.yml` satisfies every restriction resolved in §0.3.
-5. README renders both badge lines between markers; `{owner}/{repo}` correctly substituted.
+5. README renders both badge lines and the verify-yourself block between markers; `{owner}/{repo}` correctly substituted everywhere (badges, curl, gh commands).
 6. `dependabot.yml` parses and covers github-actions + all detected ecosystems.
 7. **Idempotency**: re-run the full installation → zero diffs.
 8. *(post-push)* `security` workflow completes; findings visible in Security tab.
 9. *(post-push)* Scorecard run completes with publish step green; `curl -sI` on the badge URL returns 200 and the viewer shows a score.
 10. *(post-release)* Test release carries `sbom.cdx.json`; the asset parses as JSON with `"bomFormat": "CycloneDX"`.
+11. *(post-release)* The downloaded `sbom.cdx.json` verifies: `gh attestation verify sbom.cdx.json --repo {owner}/{repo}` exits 0 and names this repo's `security` workflow as the builder.
 
 ---
 
