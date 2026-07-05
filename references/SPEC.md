@@ -1,6 +1,6 @@
 # Repo Trust System — Implementation Spec (v2-draft)
 
-> v2-draft (2026-07-05): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block. Pending v2 work: §5.2 prompt rewrite, score history. v1 behavior is unchanged where this draft doesn't say otherwise.
+> v2-draft (2026-07-05): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block. Also adds §5.3 score history (`scorecard_history.jsonl`, citable trend). Pending v2 work: §5.2 prompt rewrite. v1 behavior is unchanged where this draft doesn't say otherwise.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
@@ -279,6 +279,7 @@ Run all that don't require a push locally; report the rest as pending-first-push
 9. *(post-push)* Scorecard run completes with publish step green; `curl -sI` on the badge URL returns 200 and the viewer shows a score.
 10. *(post-release)* Test release carries `sbom.cdx.json`; the asset parses as JSON with `"bomFormat": "CycloneDX"`.
 11. *(post-release)* The downloaded `sbom.cdx.json` verifies: `gh attestation verify sbom.cdx.json --repo {owner}/{repo}` exits 0 and names this repo's `security` workflow as the builder.
+12. *(post-audit)* `scorecard_history.jsonl` consistent with the live score per §5.3.
 
 ---
 
@@ -290,10 +291,10 @@ Every invocation runs three phases in order. The v1 split — installation as th
 
 **Phase A — Install what's missing.** §0 preflight in full (including §0.3 volatile-data resolution whenever anything will be written), then the §1 deliverables that §0.1 found missing. On a fully-installed repo this phase is a verified no-op (§4 test 7). Output: the install report (§5.1) when anything was written; otherwise a single line `➖ instalación completa — nada que escribir`.
 
-**Phase B — Operate (live reads only, no writes).** Read live, never from memory:
+**Phase B — Operate (live reads; the only write is the §5.3 history append).** Read live, never from memory:
 
 1. `security` workflow: conclusion of the latest run on the default branch (`gh run list --workflow=security.yml`), and open code-scanning alert counts by severity (`gh api /repos/{owner}/{repo}/code-scanning/alerts`); if the alerts API is unavailable, degrade to the workflow log and say so.
-2. Scorecard: score and per-check breakdown from the public API (`https://api.scorecard.dev/projects/github.com/{owner}/{repo}`); badge liveness (HTTP 200 on the badge URL).
+2. Scorecard: score and per-check breakdown from the public API (`https://api.scorecard.dev/projects/github.com/{owner}/{repo}`); badge liveness (HTTP 200 on the badge URL). On a successful score read, append to `scorecard_history.jsonl` per §5.3 (the flow's only phase-B write, and it is append-only).
 3. Latest release: exists, carries `sbom.cdx.json`, asset parses as CycloneDX; staleness (commits on the default branch newer than the release).
 4. Once attestations are installed: provenance attestation present and verifiable on the release assets.
 
@@ -393,6 +394,29 @@ LinkedIn trust block (a demanda, para posts):
 ```
 Bloque de confianza para LinkedIn: leé EN VIVO (1) el score actual de Scorecard del repo vía su API o badge, (2) la última release y su asset sbom.cdx.json, (3) el estado del workflow security. Armá 3 líneas en español: score con link al viewer público, release con link al SBOM, y qué se escanea (vulnerabilidades, secretos, licencias). Si algún dato no se puede leer en vivo, decilo y omitilo. Nada sale de memoria.
 ```
+
+### 5.3 Score history
+
+The Scorecard score's upward trend is the content (§3.2); this section makes the trend citable instead of anecdotal.
+
+**Storage**: `scorecard_history.jsonl` at the target repo's root. Append-only JSONL, committed to the repo — public and auditable: anyone can check a claimed trend against the git history, and backdating would show in the commit dates. One line per recorded observation:
+
+```json
+{"ts":"<ISO local>","score":<n.n>,"weakest":[{"check":"<Scorecard check name>","score":<n>}, ...]}
+```
+
+`weakest` holds the up-to-3 lowest-scoring checks at that observation (ties broken alphabetically) — enough to later explain *why* the score moved without storing the full breakdown.
+
+**Append rule** (phase B, after a successful live score read): append when the file has no entries, OR the score differs from the last entry, OR the last entry is ≥28 days old. Otherwise skip — repeated same-score audits within a month add noise, not signal. Never rewrite or delete existing lines; a wrong line is corrected by the next appended observation.
+
+**Rendering**:
+
+- *Audit report* (Scorecard group): with ≥2 entries and a change, the score line carries the delta and since-when — `✅ score 6.4 — antes 5.8 (2026-07-05)`. A **drop** renders ⚠️ with the fallen check named (the §5.0 advice table row "score dropped" then owns the recommendation).
+- *LinkedIn trust block*: include the trend line only when the delta is **positive** (`Score OpenSSF: 5.8 → 6.4 desde jul 2026`); with one entry or no improvement, show only the current score. Omitting a negative trend from a post is selection, not fabrication — the current score is always shown live, and the full history stays public in the repo. The audit never omits it.
+
+**Not an install deliverable**: the file is created lazily by the first phase-B run that reads a score; it is absent from §0.1 by design (its absence on a fresh install is not drift).
+
+**§4 test 12** *(post-audit)*: after a phase-B run with a successful score read, `scorecard_history.jsonl` exists, every line parses as JSON matching the schema, and the last line's score equals the live score just read (or the skip condition held).
 
 ---
 
