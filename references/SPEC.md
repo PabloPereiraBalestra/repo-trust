@@ -250,6 +250,38 @@ Run all that don't require a push locally; report the rest as pending-first-push
 
 ## 5. Report format & operating prompts
 
+### 5.0 Single-invocation flow: install → operate → advise
+
+Every invocation runs three phases in order. The v1 split — installation as the skill, audit as a separate bolted-on prompt — is superseded: an "audit" is simply phases B+C of the same flow, and a kickoff is A+B+C.
+
+**Phase A — Install what's missing.** §0 preflight in full (including §0.3 volatile-data resolution whenever anything will be written), then the §1 deliverables that §0.1 found missing. On a fully-installed repo this phase is a verified no-op (§4 test 7). Output: the install report (§5.1) when anything was written; otherwise a single line `➖ instalación completa — nada que escribir`.
+
+**Phase B — Operate (live reads only, no writes).** Read live, never from memory:
+
+1. `security` workflow: conclusion of the latest run on the default branch (`gh run list --workflow=security.yml`), and open code-scanning alert counts by severity (`gh api /repos/{owner}/{repo}/code-scanning/alerts`); if the alerts API is unavailable, degrade to the workflow log and say so.
+2. Scorecard: score and per-check breakdown from the public API (`https://api.scorecard.dev/projects/github.com/{owner}/{repo}`); badge liveness (HTTP 200 on the badge URL).
+3. Latest release: exists, carries `sbom.cdx.json`, asset parses as CycloneDX; staleness (commits on the default branch newer than the release).
+4. Once attestations are installed: provenance attestation present and verifiable on the release assets.
+
+A read that should work and doesn't renders ❌; a check that cannot apply renders ➖ (§5.1) — never silently skipped. Output: the audit report (§5.1).
+
+**Phase C — Advise.** Map phase-B findings to next actions with the table below. Cap at the **3 highest-impact recommendations** per run, ordered by expected effect on the public signal — ten recommendations is noise. Phase C proposes; it never writes files or changes repo settings without explicit user approval in the same conversation.
+
+| Phase-B finding | Recommendation (one per finding) |
+|---|---|
+| Scorecard Branch-Protection / Code-Review low, >1 active maintainer | offer §1.6 branch protection |
+| Scorecard Branch-Protection / Code-Review low, solo maintainer | state the §3.2 structural ceiling; recommend nothing (don't chase) |
+| Scorecard Pinned-Dependencies below max | list the unpinned refs, offer SHA-pinning |
+| Open CRITICAL/HIGH findings | show count + top finding; offer a fix or a tracking issue (§6.3 48h rule) |
+| `security` workflow red | diagnose the failing step, offer the fix; never loosen the gate (§3.5) |
+| Release stale (newer commits, old release) | recommend cutting a release so SBOM/attestation stay representative |
+| No release yet | recommend a first release — it unlocks the SBOM (and attestation) signal |
+| Badge 404 / API empty right after first Scorecard run | report §3.4 first-publish lag as ⚠️; no action |
+| Score dropped vs. recorded history | show the delta and which check fell; offer a targeted fix |
+| A §0.1 deliverable missing on an installed repo | that is drift: phase A reinstalls it, report ❌→✅ |
+
+Honesty rule for recommendations: never propose theater (self-approved review flows, empty PRs, gaming a check without changing the underlying posture). Recommend what moves the real posture; the score follows it.
+
 ### 5.1 Schematic report format
 
 Every user-facing output of this system — install report, audit report, LinkedIn trust block — uses one schematic format instead of prose: glyph-led lines grouped under short headers, scannable in a glance. Explanatory prose, when needed, goes after the report block, never inside it.
@@ -303,7 +335,7 @@ Política
 
 ### 5.2 Operating prompts
 
-*(Prose-format prompts below predate §5.1; their outputs must already be emitted in the §5.1 format. The prompt texts themselves are rewritten in a later v2 change.)*
+*(Prose-format prompts below predate §5.0/§5.1; until rewritten, map them as: kickoff = phases A+B+C, audit = phases B+C, and emit every output in the §5.1 format.)*
 
 Kickoff (once per repo):
 
@@ -344,7 +376,7 @@ Per repo, evaluated on any audit:
 
 ## 7. Scope
 
-Implement only what this spec defines. No CodeQL, no signing/attestations, no extra hooks or monitors: those are explicit future extensions, proposed separately with evidence of need. When done: list files created/modified, test results, and any deviation with its reason.
+The skill installs (§0–§1), operates and advises (§5.0) — nothing else. Do not implement beyond what this spec defines: no CodeQL, no extra hooks or monitors; those remain future extensions. Phase C may *recommend* an out-of-scope extension only when phase-B evidence supports it (that is precisely the "evidence of need" this section has always demanded); implementing it still requires the extension entering the spec first. When done: emit the §5.1 report(s), list files created/modified, test results, and any deviation with its reason.
 
 ---
 
