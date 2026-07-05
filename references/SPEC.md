@@ -370,29 +370,40 @@ Política
 
 ### 5.2 Operating prompts
 
-*(Prose-format prompts below predate §5.0/§5.1; until rewritten, map them as: kickoff = phases A+B+C, audit = phases B+C, and emit every output in the §5.1 format.)*
+The prompts map onto the §5.0 phases: kickoff = A+B+C, audit = B+C, and the LinkedIn trust block is a standalone on-demand output.
 
 Kickoff (once per repo):
 
 ```
-Arrancamos con el protocolo "Repo trust" (REPO_TRUST_SPEC.md).
+Arrancamos con el protocolo "Repo trust" (REPO_TRUST_SPEC.md), flujo completo §5.0 (fases A+B+C). Todas las salidas en formato §5.1.
+Fase A — instalar:
 0. Preflight §0 completo: estado, entorno, visibilidad, ecosistemas. Si el repo es privado, pará y decímelo antes de seguir.
 1. Resolvé los datos volátiles (§0.3) contra las fuentes oficiales y mostrame la tabla resuelta.
 2. Escribí los deliverables §1 que falten, idempotente, sin tocar workflows ajenos.
 3. Corré los tests §4 que no requieren push y listame los pendientes.
 4. Mostrame el diff completo y esperá mi OK antes de commitear.
+Fase B — operar: lecturas en vivo según §5.0 (workflow security y alertas, Scorecard con historial §5.3, release y SBOM, attestation si está instalada).
+Fase C — aconsejar: mostrame como máximo 3 recomendaciones de la tabla §5.0.
 ```
 
 Audit (per repo, mensual o cuando algo se vea raro):
 
 ```
-Auditoría repo-trust: corré el preflight §0.1, verificá que los tests §4 post-push siguen verdes (badge responde, último release tiene SBOM, workflow security verde o con issue abierto), y decime en 3 líneas: estado, score actual de Scorecard, y cualquier deriva respecto del spec.
+Auditoría repo-trust: corré las fases B+C de §5.0.
+Fase B — lecturas en vivo, nunca de memoria: workflow security (última corrida en el branch default y alertas de code scanning por severidad), Scorecard vía API (score, checks más débiles, badge vivo; con lectura exitosa del score, apendeá a scorecard_history.jsonl según §5.3), última release con sbom.cdx.json válido y su staleness, y attestation de provenance una vez instalada.
+Emití el reporte de auditoría en formato §5.1: líneas con glifo bajo los cuatro headers (Escaneo, Scorecard, SBOM · Release, Política), delta de score según §5.3 cuando haya historial, y cerrá con la línea de deriva (✅ sin deriva, o ❌ y qué derivó).
+Fase C — decime como máximo 3 recomendaciones de la tabla §5.0, ordenadas por impacto en la señal pública.
 ```
 
 LinkedIn trust block (a demanda, para posts):
 
 ```
-Bloque de confianza para LinkedIn: leé EN VIVO (1) el score actual de Scorecard del repo vía su API o badge, (2) la última release y su asset sbom.cdx.json, (3) el estado del workflow security. Armá 3 líneas en español: score con link al viewer público, release con link al SBOM, y qué se escanea (vulnerabilidades, secretos, licencias). Si algún dato no se puede leer en vivo, decilo y omitilo. Nada sale de memoria.
+Bloque de confianza para LinkedIn: leé todo EN VIVO, nada sale de memoria. Armá como máximo 4 líneas en español encabezadas por glifo, SIN markdown (LinkedIn lo elimina: glifos, texto plano y URLs peladas nomás):
+1. Score actual de Scorecard con la URL del viewer público; si el historial §5.3 muestra mejora, agregá la tendencia (solo cuando es positiva).
+2. Última release con la URL del asset sbom.cdx.json.
+3. Qué se escanea: vulnerabilidades, secretos, licencias.
+4. Línea de provenance con el one-liner de gh attestation verify, una vez que las attestations estén instaladas.
+Si algún dato no se puede leer en vivo, decime la omisión y omitilo; nunca lo reconstruyas.
 ```
 
 ### 5.3 Score history
