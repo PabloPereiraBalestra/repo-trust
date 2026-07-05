@@ -29,6 +29,7 @@ Backlog source: REPO_TRUST_SPEC.md §5 kickoff, applied to this same repo (repo-
 Snapshot now usable (fresh, non-null rate_limits, written after this session's start) — **auto mode** for the push and release blocks: go/no-go computed from usage_snapshot.json, real start/end_pct logged. Prior manual-mode entries above are left as-is per user instruction.
 
 ## Version sync
+- 2026-07-05: CLAUDE.md protocol section resynced from session-budget's canonical `references/SPEC.md` (v16) per the §0.1 version sync rule — picks up the ultrareview fix (dangling §2/§5 references now qualified with the spec they live in; changed in the canonical spec first, v15→v16) plus the v15 "parallel":true metrics bullet that this extract was missing.
 - 2026-07-04: CLAUDE.md protocol section resynced from session-budget's canonical `references/SPEC.md` (v13) per the §0.1 version sync rule — was stale since B0 (missing ctx≥60 context-cut rule, corrections mechanism, spans_reset calibration exclusion, session_id staleness refinement). No file-content changes beyond the protocol section; no approval needed per spec.
 
 ## repo-trust backlog: complete
