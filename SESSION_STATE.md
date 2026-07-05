@@ -1,16 +1,28 @@
 # SESSION_STATE
 
-Backlog source: REPO_TRUST_SPEC.md §5 kickoff, applied to this same repo (repo-trust) | confirmed by user on 2026-07-03
+Backlog source: BACKLOG.md (repo root) | confirmed by user on 2026-07-05. (Previous source, complete: REPO_TRUST_SPEC.md §5 kickoff applied to this repo, confirmed 2026-07-03.)
 
 ## Pending blocks
 <!-- ordered by dependency: [TAG] size est_points — description | dep -->
-(none — all blocks in the repo-trust backlog complete)
+<!-- confirmed by user 2026-07-05 ("ok") -->
+<!-- R1 started 2026-07-05 (moved to In progress) -->
+- [DESIGN] M 12 — R2: SPEC.md operate & advise flow — new section making one invocation do three phases: A install-what's-missing (§0–§1 unchanged), B operate (live reads only: security workflow status via gh, Scorecard API per-check JSON, latest release + SBOM asset presence), C advise (a check→action table in the spec mapping each weak/failing signal to exactly one concrete next step, e.g. low code-review check → offer §1.6 branch protection). §7 scope wording updated to match; SKILL.md body updated to route through the flow. Ends committed. | dep: R1
+- [MECHANICAL] S 5 — R3: rewrite the §5 operating prompts to the new design — audit prompt becomes "run phases B+C" (kickoff prompt = full A+B+C), trust block prompt keeps the live-data-only rule but emits the R1 glyph format; commit. | dep: R2
+- [DESIGN] S 5 — A1: attestation design — spec section for GitHub artifact attestations on the release job (`actions/attest-build-provenance`, needs `id-token: write` + `attestations: write`), marker upgrade semantics v1→v2 (§0.1 must detect an older marker version and upgrade the marked block without clobbering), and the "verify it yourself" command set (gh attestation verify / Scorecard API curl / SBOM download) with where it lives (README block + trust-block line). Ends committed to spec. | dep: none
+- [MECHANICAL] M 12 — A2: implement attestations on this repo — resolve action SHA per §0.3 discipline, upgrade security.yml to marker v2 with the attest step and permissions, add the README "verificalo vos mismo" section, add the attestation line to the trust block prompt, run §4 local tests, commit; then test release for `gh attestation verify` (outward-facing: ask user immediately before creating the release). | dep: A1, R3
+- [DESIGN] S 5 — D1: score-history design — spec section for `scorecard_history.jsonl` (append-only, one line per audit: ts, score, weakest 2–3 checks), and the delta line format in the audit report and trust block ("Score X.X → Y.Y desde <fecha>", omitted when <2 entries). Ends committed to spec. | dep: R2
+- [MECHANICAL] S 5 — D2: implement score history — create the history file seeded with the current live score, wire the delta line into the §5 prompts, commit. | dep: D1, R3
+
+Gated (not scoped into blocks yet — awaiting user input):
+- Monthly audit scheduling — needs execution-surface decision; user note 2026-07-05: solutions need not live on Claude — external applications with access to his Claude account (e.g. scheduled script/GitHub Action calling the Claude API/SDK) are valid surfaces. Candidate surfaces now: cloud scheduled agent, local recurring run, external app + Claude API, stay manual. Depends on R3 either way.
+- Second-repo validation — needs the user to name the repo; unlocks CodeQL, dependency-review, license-policy items.
 
 ## In progress
-(none)
+- [DESIGN] M 12 — R1: SPEC.md schematic report format (glyphs, headers, three report types, degraded-mode rendering; spec → v2-draft). Session % start: 37 (auto mode).
 
 ## Completed
 <!-- [TAG] size — description | commit <hash> | session % start→end | actual points -->
+- [DESIGN] M — Planning round 2: BACKLOG.md triage against north star, 5 Fable-sourced candidates added, design calls made (report format, operate/advise flow, attestations-in / CodeQL-deferred / richer-SBOM-dropped), 7 blocks scoped into pending. Confirmed by user. | commit (this commit) | session % 25→37 | actual points 12
 - [MECHANICAL] M — B0: bootstrap session-budget deliverables for repo-trust (CLAUDE.md protocol section, SESSION_STATE.md, budget_log.jsonl, .claude/agents/implementer.md) | commit b06471d | session % n/a (manual mode) | actual points null
 - [MECHANICAL] S — Statusline diagnostic: verified statusLine wired in settings.json with valid absolute path, ran statusline.ps1 manually with mock stdin JSON, confirmed it writes usage_snapshot.json correctly. Root cause of the earlier absence: no live render had occurred yet since the last cleanup deletion (from a prior install/test run) at the moment of the first preflight check in this conversation — the file appeared on its own once this session's TUI produced its first live render (1321 bytes, mid-session, before the manual test). Not a bug: mechanism works as designed (§3.7 — rewritten on every render). Fix applied: deleted the mock-data snapshot my manual test wrote, so the next live render regenerates it from real data (same mandatory-cleanup rule as §4 tests). | commit n/a (diagnostic only, no repo file changes) | session % n/a (manual mode) | actual points null
 - [MECHANICAL] — Branch rename: local `master`→`main`, pushed, GitHub default branch set to `main` via `gh repo edit --default-branch main`, old remote `master` deleted. Verified via `gh repo view --json defaultBranchRef`. | commit n/a (git/GitHub admin, no file changes) | session % n/a (manual mode) | actual points null
@@ -25,7 +37,7 @@ Backlog source: REPO_TRUST_SPEC.md §5 kickoff, applied to this same repo (repo-
 ## Cost calibration
 <!-- medians by (size, model) from budget_log.jsonl, e.g. S/Sonnet=4, M/Sonnet=9, M/Fable=14 -->
 <!-- defaults when no data: S=5 M=12 L=25 | current buffer=10 cap=20 -->
-2 non-null actuals so far (S/Sonnet 5 = 7, 1) — below the 5-sample minimum for a per-bucket median, so still using defaults: S=5 M=12 L=25 | buffer=10 cap=20.
+3 non-null actuals so far (S/Sonnet 5 = 7, 1; S/Fable 5 = 1) — below the 5-sample minimum for any per-bucket median, so still using defaults: S=5 M=12 L=25 | buffer=10 cap=20. Calibration phase (<10 non-null entries): first-order rules only.
 Snapshot now usable (fresh, non-null rate_limits, written after this session's start) — **auto mode** for the push and release blocks: go/no-go computed from usage_snapshot.json, real start/end_pct logged. Prior manual-mode entries above are left as-is per user instruction.
 
 ## Version sync
