@@ -3,6 +3,8 @@
 > v2 (2026-07-05, finalized on repo-trust itself): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block, §5.3 score history (`scorecard_history.jsonl`, citable trend), §5.2 prompts rewritten to the flow, and §1.7 CodeQL static analysis (target detection incl. the `actions` workflow-analysis language, default-setup conflict handling). All gating acceptance tests (§4, including 10/11/14) passed on this repo's push and v0.2.0 release. v1 behavior is unchanged where v2 doesn't say otherwise.
 >
 > v2.1 (2026-07-05, ahead of second-repo validation on `initium`): §0.2.7 gains source-file-based CodeQL target detection (a2) alongside manifest-mapping — a repo can have real source in a supported language with zero package manifests, discovered exactly this way on `initium`. New §0.2.8 defines per-deliverable behavior in degraded (private-repo) mode instead of treating degraded mode as a blanket skip: security.yml and codeql.yml install at full value regardless of visibility; scorecard.yml installs without `publish_results` if it can still produce a local result, else is skipped with reason; the README block becomes a private-repo notice (§1.3) instead of the badge template. Tests 15-16 added.
+>
+> v2.2 (2026-07-06, from installing on `initium` — private repo): security.yml marker v2→v3, adds `actions: read` to the `scan` job. Without it, `upload-sarif` fails on private repos with "Resource not accessible by integration" (confirmed against `github/codeql-action` issue #2117) — the actual on-repo failure that surfaced this, not a hypothetical. New §3.9 documents it; fixed unconditionally (not visibility-gated) since it's harmless on public repos.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
@@ -25,7 +27,7 @@ Verify each §1 deliverable:
 
 | Deliverable | Check |
 |---|---|
-| `.github/workflows/security.yml` | exists AND contains marker `# repo-trust:security` (current version: v2) |
+| `.github/workflows/security.yml` | exists AND contains marker `# repo-trust:security` (current version: v3) |
 | `.github/workflows/scorecard.yml` | exists AND contains marker `# repo-trust:scorecard` (current version: v1) |
 | `.github/workflows/codeql.yml` | exists AND contains marker `# repo-trust:codeql` (current version: v1) — only required when §0.2.7 finds at least one analyzable target; ➖ (not a missing deliverable) otherwise |
 | README badges block | markers `<!-- repo-trust:start -->` / `<!-- repo-trust:end -->` present |
@@ -97,7 +99,7 @@ All idempotent: check before create, merge before write, never clobber user cont
 ### 1.1 `.github/workflows/security.yml`
 
 ```yaml
-# repo-trust:security v2
+# repo-trust:security v3
 name: security
 on:
   push:
@@ -116,6 +118,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read
     steps:
       - uses: actions/checkout@<RESOLVE:sha> # <RESOLVE:tag>
       - name: Trivy scan (vuln + secret + license)
@@ -161,7 +164,7 @@ jobs:
           files: sbom.cdx.json
 ```
 
-Design decisions (fixed, do not renegotiate per repo): gate fails on CRITICAL/HIGH with `ignore-unfixed: true`; SARIF uploads even when the gate fails (`if: always()`); SBOM is generated per release, not per push; the SBOM is attested with GitHub-native SLSA build provenance (`attest-build-provenance`) **before** it is attached, so every published SBOM asset is verifiable with `gh attestation verify` — GitHub-native attestations over Sigstore/cosign because they need no key management, are free on public repos, and the verify command is a one-liner a stranger can run. Attestation of provenance only covers assets this workflow produces (the SBOM); user-uploaded release assets are out of scope.
+Design decisions (fixed, do not renegotiate per repo): gate fails on CRITICAL/HIGH with `ignore-unfixed: true`; SARIF uploads even when the gate fails (`if: always()`); SBOM is generated per release, not per push; the SBOM is attested with GitHub-native SLSA build provenance (`attest-build-provenance`) **before** it is attached, so every published SBOM asset is verifiable with `gh attestation verify` — GitHub-native attestations over Sigstore/cosign because they need no key management, are free on public repos, and the verify command is a one-liner a stranger can run. Attestation of provenance only covers assets this workflow produces (the SBOM); user-uploaded release assets are out of scope. The `scan` job's `actions: read` permission (added v2→v3, §3.9) is unconditional — harmless on public repos, required on private ones — rather than a visibility-conditional template, matching this spec's preference for one code path over two.
 
 ### 1.2 `.github/workflows/scorecard.yml`
 
@@ -341,6 +344,7 @@ Everything else in §0.3 is resolve-at-run-time by design.
 6. **Never edit workflows lacking the repo-trust marker.**
 7. **CodeQL with zero analyzable targets** (no mapped language, no `.github/workflows/`): §1.7 is skipped and reported ➖, same honesty rule as license scanning with no manifests (§3.3). Its absence is not drift.
 8. **CodeQL vs. GitHub's default setup**: the two cannot coexist cleanly on the same repo (§0.2.7c). repo-trust always proposes the advanced (workflow-file) setup, for the same reason every other deliverable here is a versioned file rather than a repo-settings toggle: it is auditable, SHA-pinned, and governed by the marker/upgrade rules in §0.1 — not something a stranger reading the repo has to trust blindly.
+9. **`upload-sarif` on private repos needs `actions: read`**: without it the `scan` job's SARIF upload fails with "Resource not accessible by integration" trying to read workflow-run metadata, even with `security-events: write` already granted — a private-repo-only failure mode (confirmed live against `github/codeql-action` issue #2117; the default `GITHUB_TOKEN` is more restricted on private repos, same root cause as §0.3's Scorecard/GHAS finding). Discovered installing on `initium` (2026-07-05); fixed unconditionally in the `security.yml` template (marker v2→v3) rather than gated on visibility.
 
 ---
 
@@ -350,7 +354,7 @@ Run all that don't require a push locally; report the rest as pending-first-push
 
 1. All installed workflow files parse as valid YAML (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" <file>`).
 2. Every third-party action reference is a full 40-char SHA with a tag comment.
-3. `security.yml` contains the gate (`severity: 'CRITICAL,HIGH'`, `exit-code: '1'`) and the release-gated `sbom` job with the attest step (`subject-path: 'sbom.cdx.json'`) and `id-token: write` + `attestations: write` permissions on that job only.
+3. `security.yml` contains the gate (`severity: 'CRITICAL,HIGH'`, `exit-code: '1'`), `actions: read` on the `scan` job (§3.9), and the release-gated `sbom` job with the attest step (`subject-path: 'sbom.cdx.json'`) and `id-token: write` + `attestations: write` permissions on that job only.
 4. `scorecard.yml` satisfies every restriction resolved in §0.3.
 5. README renders both badge lines and the verify-yourself block between markers; `{owner}/{repo}` correctly substituted everywhere (badges, curl, gh commands).
 6. `dependabot.yml` parses and covers github-actions + all detected ecosystems.
