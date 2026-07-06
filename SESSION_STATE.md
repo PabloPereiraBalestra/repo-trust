@@ -6,7 +6,9 @@ Backlog source: BACKLOG.md (repo root) | confirmed by user on 2026-07-05. (Previ
 <!-- ordered by dependency: [TAG] size est_points — description | dep -->
 <!-- confirmed by user 2026-07-05 ("ok") -->
 <!-- R1 started 2026-07-05 (moved to In progress) -->
-- [MECHANICAL] S 3 — Test release (v0.2.0) para tests §4 10/11: SBOM attached + `gh attestation verify` exits 0. Outward-facing: user go required (explanation of implications given 2026-07-05, awaiting decision). | dep: none (push done)
+- [MECHANICAL] M 12 — C2: implementar CodeQL en este repo — resolver SHAs de codeql-action/init y /analyze (§0.3), target detectado = solo `actions` (sin manifests), deshabilitar el default-setup de GitHub ya activo vía `gh api PATCH .../code-scanning/default-setup state=not-configured` (aprobación ya dada por el usuario al pedir "instale, corra y valide"; reportar la acción igual), escribir `.github/workflows/codeql.yml` marker v1, tests locales 1/2/13, commit. | dep: C1 (spec 1.7, done)
+- [MECHANICAL] S 5 — Push C2 + validar test §4 14 (post-push): corrida de codeql.yml en verde, resultados en code-scanning alerts con tool.name=CodeQL. | dep: C2
+- [MECHANICAL] S 3 — Test release (v0.2.0) para tests §4 10/11: SBOM attached + `gh attestation verify` exits 0. Outward-facing: user go ya dado ("avanza con el release" tras CodeQL). | dep: C2-push (para que el release también incluya CodeQL instalado)
 - [MECHANICAL] S 2 — .gitattributes: `scorecard_history.jsonl text eol=lf` (evitar CRLF en appends futuros del historial). Discovered in D2. | dep: none
 
 Gated (not scoped into blocks yet — awaiting user input):
@@ -18,6 +20,7 @@ Gated (not scoped into blocks yet — awaiting user input):
 
 ## Completed
 <!-- [TAG] size — description | commit <hash> | session % start→end | actual points -->
+- [DESIGN] M — C1: SPEC.md §1.7 CodeQL — scope reversal (user wants the skill to install/run/validate it, not manual per-repo toggling). New §0.2.7 target detection (manifest→language mapping + always-on `actions` language when workflows exist), codeql.yml template (matrix per target, weekly schedule, build-mode per language), default-setup conflict handling (ask before disabling GitHub's managed setup), §0.1/§0.3/§3/§4 (tests 13-14)/§5.0/§7 updated. BACKLOG decision reversed with rationale. | commit 8bbb172 | session % 59→3 (spans_reset — logged actual=null, excluded from calibration; model-field correction appended, this ran on Fable 5) | actual points null
 - [DESIGN] M — Planning round 2: BACKLOG.md triage against north star, 5 Fable-sourced candidates added, design calls made (report format, operate/advise flow, attestations-in / CodeQL-deferred / richer-SBOM-dropped), 7 blocks scoped into pending. Confirmed by user. | commit d695d95 | session % 25→37 | actual points 12
 - [MECHANICAL] S — Push a920544..: 14 commits (spec v2-draft completo, security.yml marker v2 con attest, README verify-yourself, scorecard_history.jsonl). Post-push: security ✅, scorecard ✅, badge 200. Hallazgo: workflow CodeQL corrió y dio success — NO instalado por repo-trust (default setup de GitHub habilitado a nivel repo, externo al spec). | commit a920544 (pushed head) | session % 30→44 | actual points 14 but PARALLEL (incluye actividad de otras sesiones)
 - [MECHANICAL] S — D2: scorecard_history.jsonl seeded with first live observation — score 5.4 (DOWN from 5.8 at install: audit-worthy), weakest recorded Branch-Protection/CII-Best-Practices/Code-Review = 0 (8 checks tied at 0, alphabetical slice; CI-Tests and Packaging = -1 excluded as N/A). Implementer, Fable override. | commit f93a413 | session % 24→27 | actual points 3 but PARALLEL (session-budget session active)
