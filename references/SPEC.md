@@ -1,6 +1,6 @@
-# Repo Trust System — Implementation Spec (v2-draft)
+# Repo Trust System — Implementation Spec (v2)
 
-> v2-draft (2026-07-05): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block. Also adds §5.3 score history (`scorecard_history.jsonl`, citable trend), the §5.2 prompts rewritten to the flow, and §1.7 CodeQL static analysis (target detection incl. the `actions` workflow-analysis language, default-setup conflict handling, §0.1/§3/§4/§5.0 updated to match). Draft becomes v2 final when §4 tests 10, 11 and 14 pass on the next push/release. v1 behavior is unchanged where this draft doesn't say otherwise.
+> v2 (2026-07-05, finalized on repo-trust itself): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block, §5.3 score history (`scorecard_history.jsonl`, citable trend), §5.2 prompts rewritten to the flow, and §1.7 CodeQL static analysis (target detection incl. the `actions` workflow-analysis language, default-setup conflict handling). All gating acceptance tests (§4, including 10/11/14) passed on this repo's push and v0.2.0 release. v1 behavior is unchanged where v2 doesn't say otherwise.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
