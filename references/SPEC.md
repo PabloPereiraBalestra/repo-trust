@@ -1,6 +1,6 @@
 # Repo Trust System — Implementation Spec (v2-draft)
 
-> v2-draft (2026-07-05): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block. Also adds §5.3 score history (`scorecard_history.jsonl`, citable trend) and the §5.2 prompts rewritten to the flow. Draft becomes v2 final when §4 tests 10–11 pass on the next release. v1 behavior is unchanged where this draft doesn't say otherwise.
+> v2-draft (2026-07-05): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block. Also adds §5.3 score history (`scorecard_history.jsonl`, citable trend), the §5.2 prompts rewritten to the flow, and §1.7 CodeQL static analysis (target detection incl. the `actions` workflow-analysis language, default-setup conflict handling, §0.1/§3/§4/§5.0 updated to match). Draft becomes v2 final when §4 tests 10, 11 and 14 pass on the next push/release. v1 behavior is unchanged where this draft doesn't say otherwise.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
@@ -25,6 +25,7 @@ Verify each §1 deliverable:
 |---|---|
 | `.github/workflows/security.yml` | exists AND contains marker `# repo-trust:security` (current version: v2) |
 | `.github/workflows/scorecard.yml` | exists AND contains marker `# repo-trust:scorecard` (current version: v1) |
+| `.github/workflows/codeql.yml` | exists AND contains marker `# repo-trust:codeql` (current version: v1) — only required when §0.2.7 finds at least one analyzable target; ➖ (not a missing deliverable) otherwise |
 | README badges block | markers `<!-- repo-trust:start -->` / `<!-- repo-trust:end -->` present |
 | `.github/dependabot.yml` | exists (any content counts; merge, don't clobber) |
 | `SECURITY.md` | exists at repo root |
@@ -47,6 +48,7 @@ If ANY item is missing, installation covers only the missing items. Re-running t
 4. **Default branch**: `gh repo view --json defaultBranchRef`.
 5. **Ecosystems**: detect package manifests (`pyproject.toml`, `requirements*.txt`, `poetry.lock`, `package.json`, `Cargo.toml`, `go.mod`, etc.). If none (e.g. PBIP/TMDL repos): report that the SBOM will be thin and license scan near-empty; secret scanning and Scorecard still apply. Ask whether to proceed.
 6. **Existing workflows**: list `.github/workflows/`. Never modify files without the `repo-trust` marker. If a pre-existing workflow already runs Trivy or Scorecard, report and ask before adding a parallel one.
+7. **CodeQL target detection**: determine what CodeQL has to analyze. (a) Map §0.2.5's detected package manifests to CodeQL-supported languages using the current list resolved in §0.3 — do not assume the list from memory, it changes. (b) Independently of manifests, if `.github/workflows/` is non-empty, `actions` is always an analyzable target (CodeQL analyzes GitHub Actions workflow files as their own language). If the resulting target set is empty, report `➖ CodeQL — sin objetivo analizable` and skip §1.x entirely (parallel to the license-scan-with-no-manifests case in §3.3); this is not drift. (c) Check for a pre-existing GitHub-managed "default setup" for code scanning (`gh api repos/{owner}/{repo}/code-scanning/default-setup`). If enabled: report it, explain that GitHub does not run default setup and an advanced (workflow-file) setup on the same repo simultaneously (confirm the current exact interaction at §0.3 time — this is resolve-at-run-time, GitHub's behavior here has changed before), and ask before disabling default setup via `gh api -X PATCH .../code-scanning/default-setup -f state=not-configured` in favor of the versioned, marker-governed, SHA-pinned advanced workflow (consistent with every other deliverable in this spec). Skip silently only if the user declines — then report CodeQL as not installed by repo-trust, default setup left as-is.
 
 ### 0.3 Volatile data resolution — MANDATORY before writing any file
 
@@ -63,6 +65,10 @@ Nothing marked `<RESOLVE>` in §1 may be written from memory. Resolve each again
 | dependabot.yml `package-ecosystem` key for each detected ecosystem | GitHub Dependabot docs |
 | `actions/attest-build-provenance` latest release tag + commit SHA, input names (`subject-path`), required permissions (`id-token: write`, `attestations: write`) | github.com/actions/attest-build-provenance (releases + README) |
 | `gh attestation verify` exact syntax (flags for owner/repo) and public-repo verifiability conditions | GitHub artifact-attestations docs |
+| `github/codeql-action/init`, `github/codeql-action/analyze` current tags + SHAs | github/codeql-action releases |
+| Current CodeQL-supported language identifiers (for mapping §0.2.7 manifests) and whether `actions` (GitHub Actions workflow analysis) is GA and its exact `languages:` value | GitHub CodeQL docs (supported languages page) |
+| Current interaction between default setup and advanced (workflow-based) setup for code scanning on the same repo | GitHub code-scanning / default-setup docs |
+| Per detected compiled language (java-kotlin, go, c-cpp, csharp, swift): whether `build-mode: none` is supported or `autobuild`/`manual` is required | GitHub CodeQL docs (per-language build-mode) |
 
 All third-party actions are pinned by **full commit SHA** with the version tag as a trailing comment. This is both supply-chain hygiene and rewarded by Scorecard's dependency-pinning check (confirm exact check name in scorecard docs/checks.md when resolving).
 
@@ -238,6 +244,52 @@ Only if absent. Minimal vulnerability disclosure policy in Spanish (repo audienc
 
 Offer once per repo: enable branch protection on the default branch via `gh api` (require PR before merge; status checks once `security` has run at least once). Raises the corresponding Scorecard checks. Solo maintainer can self-merge; that is fine. Skip silently if declined.
 
+### 1.7 `.github/workflows/codeql.yml`
+
+Only written when §0.2.7 finds at least one analyzable target (a mapped language, or `actions` because `.github/workflows/` is non-empty). One `matrix.language` entry per detected target — this repo, having no package manifests, gets exactly `actions`.
+
+```yaml
+# repo-trust:codeql v1
+name: codeql
+on:
+  push:
+    branches: [<DEFAULT_BRANCH>]
+  pull_request:
+  schedule:
+    - cron: '0 4 * * 3'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL analysis (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [<RESOLVE:detected-targets>]
+    steps:
+      - uses: actions/checkout@<RESOLVE:sha> # <RESOLVE:tag>
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@<RESOLVE:sha> # <RESOLVE:tag>
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: <RESOLVE:build-mode-per-language>
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@<RESOLVE:sha> # <RESOLVE:tag>
+        with:
+          category: '/language:${{ matrix.language }}'
+```
+
+Design decisions (fixed, do not renegotiate per repo): weekly schedule (matches Scorecard's cadence, catches newly-disclosed patterns in unchanged code); one matrix entry per detected target rather than one workflow per language, so results stay in a single file under the marker; `build-mode: none` for `actions` and other interpreted/config languages, `autobuild` as the default for compiled languages unless §0.3 resolution says a given language needs `manual` (if `autobuild` later fails for a specific repo, that is a per-repo finding for phase C to surface, not a reason to change this template). Findings land in the same code-scanning alerts feed as Trivy's SARIF upload (§1.1) — phase B (§5.0) reads both from one API call, distinguished by `tool.name`; the schematic report (§5.1) keeps them under the single `Escaneo` header, since both are scan results, not a new category.
+
+**Conflict with GitHub's default setup**: this workflow is an "advanced setup". If §0.2.7(c) found default setup enabled and the user approved disabling it, do that via `gh api` *before* this file is written and pushed — writing an advanced-setup workflow while default setup is still on can leave code scanning in a broken or ambiguous state (exact current behavior is `<RESOLVE>` per §0.3).
+
 ---
 
 ## 2. Fact status
@@ -261,6 +313,8 @@ Everything else in §0.3 is resolve-at-run-time by design.
 4. **First Scorecard publish lag**: results and badge can take minutes after the first successful run; a 404 on the badge before the first publish is not a failure.
 5. **Red badge on gate failure is by design.** The remediation is fixing the finding or opening a tracking issue, never lowering `severity` or removing `exit-code`.
 6. **Never edit workflows lacking the repo-trust marker.**
+7. **CodeQL with zero analyzable targets** (no mapped language, no `.github/workflows/`): §1.7 is skipped and reported ➖, same honesty rule as license scanning with no manifests (§3.3). Its absence is not drift.
+8. **CodeQL vs. GitHub's default setup**: the two cannot coexist cleanly on the same repo (§0.2.7c). repo-trust always proposes the advanced (workflow-file) setup, for the same reason every other deliverable here is a versioned file rather than a repo-settings toggle: it is auditable, SHA-pinned, and governed by the marker/upgrade rules in §0.1 — not something a stranger reading the repo has to trust blindly.
 
 ---
 
@@ -268,7 +322,7 @@ Everything else in §0.3 is resolve-at-run-time by design.
 
 Run all that don't require a push locally; report the rest as pending-first-push:
 
-1. Both workflow files parse as valid YAML (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" <file>`).
+1. All installed workflow files parse as valid YAML (`python3 -c "import yaml,sys; yaml.safe_load(open(sys.argv[1]))" <file>`).
 2. Every third-party action reference is a full 40-char SHA with a tag comment.
 3. `security.yml` contains the gate (`severity: 'CRITICAL,HIGH'`, `exit-code: '1'`) and the release-gated `sbom` job with the attest step (`subject-path: 'sbom.cdx.json'`) and `id-token: write` + `attestations: write` permissions on that job only.
 4. `scorecard.yml` satisfies every restriction resolved in §0.3.
@@ -280,6 +334,8 @@ Run all that don't require a push locally; report the rest as pending-first-push
 10. *(post-release)* Test release carries `sbom.cdx.json`; the asset parses as JSON with `"bomFormat": "CycloneDX"`.
 11. *(post-release)* The downloaded `sbom.cdx.json` verifies: `gh attestation verify sbom.cdx.json --repo {owner}/{repo}` exits 0 and names this repo's `security` workflow as the builder.
 12. *(post-audit)* `scorecard_history.jsonl` consistent with the live score per §5.3.
+13. `codeql.yml` (when §0.2.7 found a target): marker present, `matrix.language` covers every detected target with no extras, `build-mode` set per §0.3 resolution for each, permissions match the template exactly (no broader scope).
+14. *(post-push)* CodeQL run completes for every matrix language; results appear in code-scanning alerts (`tool.name` = "CodeQL"), distinguishable from Trivy's entries in the same feed.
 
 ---
 
@@ -293,7 +349,7 @@ Every invocation runs three phases in order. The v1 split — installation as th
 
 **Phase B — Operate (live reads; the only write is the §5.3 history append).** Read live, never from memory:
 
-1. `security` workflow: conclusion of the latest run on the default branch (`gh run list --workflow=security.yml`), and open code-scanning alert counts by severity (`gh api /repos/{owner}/{repo}/code-scanning/alerts`); if the alerts API is unavailable, degrade to the workflow log and say so.
+1. `security` workflow: conclusion of the latest run on the default branch (`gh run list --workflow=security.yml`), and open code-scanning alert counts by severity (`gh api /repos/{owner}/{repo}/code-scanning/alerts`) — this single call also carries CodeQL's findings when §1.7 is installed (filter/group by `tool.name` to separate Trivy from CodeQL in the report); if the alerts API is unavailable, degrade to the workflow log and say so. If `codeql.yml` is installed, also read its own latest run conclusion (`gh run list --workflow=codeql.yml`) per matrix language.
 2. Scorecard: score and per-check breakdown from the public API (`https://api.scorecard.dev/projects/github.com/{owner}/{repo}`); badge liveness (HTTP 200 on the badge URL). On a successful score read, append to `scorecard_history.jsonl` per §5.3 (the flow's only phase-B write, and it is append-only).
 3. Latest release: exists, carries `sbom.cdx.json`, asset parses as CycloneDX; staleness (commits on the default branch newer than the release).
 4. Once attestations are installed: provenance attestation present and verifiable on the release assets.
@@ -304,6 +360,7 @@ A read that should work and doesn't renders ❌; a check that cannot apply rende
 
 | Phase-B finding | Recommendation (one per finding) |
 |---|---|
+| Scorecard SAST check low, `codeql.yml` not installed, §0.2.7 finds a target | offer §1.7 CodeQL install |
 | Scorecard Branch-Protection / Code-Review low, >1 active maintainer | offer §1.6 branch protection |
 | Scorecard Branch-Protection / Code-Review low, solo maintainer | state the §3.2 structural ceiling; recommend nothing (don't chase) |
 | Scorecard Pinned-Dependencies below max | list the unpinned refs, offer SHA-pinning |
@@ -445,7 +502,9 @@ Per repo, evaluated on any audit:
 
 ## 7. Scope
 
-The skill installs (§0–§1), operates and advises (§5.0) — nothing else. Do not implement beyond what this spec defines: no CodeQL, no extra hooks or monitors; those remain future extensions. Phase C may *recommend* an out-of-scope extension only when phase-B evidence supports it (that is precisely the "evidence of need" this section has always demanded); implementing it still requires the extension entering the spec first. When done: emit the §5.1 report(s), list files created/modified, test results, and any deviation with its reason.
+The skill installs (§0–§1, now including CodeQL per §1.7), operates and advises (§5.0) — nothing else. Do not implement beyond what this spec defines: no extra hooks or monitors beyond §1; those remain future extensions. Phase C may *recommend* an out-of-scope extension only when phase-B evidence supports it (that is precisely the "evidence of need" this section has always demanded); implementing it still requires the extension entering the spec first. When done: emit the §5.1 report(s), list files created/modified, test results, and any deviation with its reason.
+
+*(CodeQL was excluded from v1 for lack of evidence of need; brought into v2 scope 2026-07-05 once GitHub's `actions`-language target showed a workflow-only repo is not a null target after all, and the user asked for it explicitly — see §1.7, §3.7–3.8.)*
 
 ---
 
