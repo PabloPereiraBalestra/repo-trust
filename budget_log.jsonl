@@ -28,3 +28,8 @@
 {"t":"block","ts":"2026-07-05T23:13:39-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":2,"actual":0,"start_pct":20,"end_pct":20,"commit":"a728603","clean":true}
 {"t":"block","ts":"2026-07-05T23:53:22-03:00","tag":"DESIGN","size":"M","model":"Fable 5","est":12,"actual":2,"start_pct":25,"end_pct":27,"commit":"466a089","clean":true,"parallel":true}
 {"t":"block","ts":"2026-07-05T23:56:15-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":5,"actual":1,"start_pct":27,"end_pct":28,"commit":"n/a (research/preflight only, no file changes)","clean":true}
+{"t":"block","ts":"2026-07-06T00:01:34-03:00","tag":"MECHANICAL","size":"M","model":"Fable 5","est":12,"actual":10,"start_pct":28,"end_pct":38,"commit":"n/a (uncommitted, awaiting user approval)","clean":true,"parallel":true}
+{"t":"block","ts":"2026-07-06T00:09:57-03:00","tag":"DESIGN","size":"S","model":"Fable 5","est":5,"actual":3,"start_pct":38,"end_pct":41,"commit":"1e6ede4 (initium repo)","clean":true,"parallel":true}
+{"t":"block","ts":"2026-07-06T07:28:28-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":5,"actual":null,"start_pct":41,"end_pct":3,"commit":"fb81585 (initium), 5b76a90 (repo-trust)","clean":false,"spans_reset":true}
+{"t":"block","ts":"2026-07-06T08:00:58-03:00","tag":"DESIGN","size":"M","model":"Fable 5","est":12,"actual":4,"start_pct":3,"end_pct":7,"commit":"5b76a90,a09a51e","clean":true,"parallel":true}
+{"t":"block","ts":"2026-07-06T08:00:58-03:00","tag":"MECHANICAL","size":"M","model":"Fable 5","est":12,"actual":4,"start_pct":3,"end_pct":7,"commit":"a2d4a97,b6ba023 (initium)","clean":true,"parallel":true}
