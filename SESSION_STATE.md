@@ -6,9 +6,14 @@ Backlog source: BACKLOG.md (repo root) | confirmed by user on 2026-07-05. (Previ
 <!-- ordered by dependency: [TAG] size est_points — description | dep -->
 <!-- confirmed by user 2026-07-05 ("ok") -->
 <!-- R1 started 2026-07-05 (moved to In progress) -->
+- [DESIGN] M 12 — I1 (a.k.a. C3): spec fixes surfaced by real second-repo conditions on initium — (a) extend §0.2.7(a) CodeQL target detection to scan for source files per supported language (not just manifest-mapped), since initium has real Python (`scripts/*.py`) with no manifest; (b) degraded-mode deliverable rules: RESOLVE live whether `scorecard-action`'s `publish_results` functions at all for private repos, then define per-deliverable behavior in degraded mode (security.yml: always full value; scorecard.yml: install without publish_results if it can still produce a local/internal SARIF result, else skip with reason; codeql.yml: unaffected by visibility; README badges/verify-yourself block: skipped, replaced by a private-repo notice — no public badge or API to show). | dep: none
+- [MECHANICAL] S 5 — I2: preflight + resolve on initium — confirm gh reaches it, visibility PRIVATE (already confirmed informally: default branch main, no existing workflows, no package manifests, real Python scripts present). Resolve volatile data table (reuse today's SHAs, already <1 day old — no need to re-fetch, §2's "~3 months" freshness window easily holds). | dep: I1
+- [MECHANICAL] M 12 — I3: write §1 deliverables on initium per I1's degraded-mode rules (security.yml v2 incl. attestation from day one, codeql.yml with Python detected via I1's source-scan fix, dependabot.yml with a `pip` entry, SECURITY.md, README private-repo notice, scorecard.yml per I1's resolved decision), run local §4 tests, show full diff. | dep: I2
+- [DESIGN] S 5 — I4: diff review + user OK to commit (mirrors the original repo-trust install pattern). | dep: I3
+- [MECHANICAL] S 5 — I5: push to initium + validate post-push tests (security workflow green findings in Security tab; CodeQL green for Python target; no badge/Scorecard-publish test since degraded mode). | dep: I4
+
 Gated (not scoped into blocks yet — awaiting user input):
-- Monthly audit scheduling — needs execution-surface decision; user note 2026-07-05: solutions need not live on Claude — external applications with access to his Claude account (e.g. scheduled script/GitHub Action calling the Claude API/SDK) are valid surfaces. Candidate surfaces now: cloud scheduled agent, local recurring run, external app + Claude API, stay manual. Depends on R3 either way.
-- Second-repo validation — needs the user to name the repo; unlocks CodeQL, dependency-review, license-policy items.
+- Third validation case (public repo with real package manifests) — needs the user to name a candidate; unlocks SBOM richness, real license scan, manifest-mapped CodeQL, dependency-review, license-policy items.
 
 ## In progress
 (none)
