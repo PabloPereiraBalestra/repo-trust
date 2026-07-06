@@ -34,3 +34,5 @@
 {"t":"block","ts":"2026-07-06T08:00:58-03:00","tag":"DESIGN","size":"M","model":"Fable 5","est":12,"actual":4,"start_pct":3,"end_pct":7,"commit":"5b76a90,a09a51e","clean":true,"parallel":true}
 {"t":"block","ts":"2026-07-06T08:00:58-03:00","tag":"MECHANICAL","size":"M","model":"Fable 5","est":12,"actual":4,"start_pct":3,"end_pct":7,"commit":"a2d4a97,b6ba023 (initium)","clean":true,"parallel":true}
 {"t":"block","ts":"2026-07-06T09:15:32-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":2,"actual":1,"start_pct":27,"end_pct":28,"commit":"n/a (personal skills dir, outside git)","clean":true}
+{"t":"block","ts":"2026-07-06T09:39:02-03:00","tag":"DESIGN","size":"S","model":"Fable 5","est":5,"actual":3,"start_pct":28,"end_pct":30,"commit":"e57d4ae","clean":true,"parallel":true}
+{"t":"block","ts":"2026-07-06T09:39:02-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":5,"actual":2,"start_pct":30,"end_pct":32,"commit":"ffb5f65,98a2b4f (initium)","clean":true,"parallel":true}
