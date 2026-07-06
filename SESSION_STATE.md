@@ -6,8 +6,6 @@ Backlog source: BACKLOG.md (repo root) | confirmed by user on 2026-07-05. (Previ
 <!-- ordered by dependency: [TAG] size est_points — description | dep -->
 <!-- confirmed by user 2026-07-05 ("ok") -->
 <!-- R1 started 2026-07-05 (moved to In progress) -->
-- [MECHANICAL] S 2 — .gitattributes: `scorecard_history.jsonl text eol=lf` (evitar CRLF en appends futuros del historial). Discovered in D2. | dep: none
-
 Gated (not scoped into blocks yet — awaiting user input):
 - Monthly audit scheduling — needs execution-surface decision; user note 2026-07-05: solutions need not live on Claude — external applications with access to his Claude account (e.g. scheduled script/GitHub Action calling the Claude API/SDK) are valid surfaces. Candidate surfaces now: cloud scheduled agent, local recurring run, external app + Claude API, stay manual. Depends on R3 either way.
 - Second-repo validation — needs the user to name the repo; unlocks CodeQL, dependency-review, license-policy items.
@@ -17,6 +15,7 @@ Gated (not scoped into blocks yet — awaiting user input):
 
 ## Completed
 <!-- [TAG] size — description | commit <hash> | session % start→end | actual points -->
+- [MECHANICAL] S — .gitattributes: `scorecard_history.jsonl text eol=lf`, new file, `git check-attr` confirms `eol: lf`. | commit a728603 | session % 20→20 | actual points 0
 - [MECHANICAL] S — Release v0.2.0 (outward-facing, user go explicit): security workflow's `sbom` job ran on the release event; test 10 PASS (sbom.cdx.json valid CycloneDX 1.6, 0 components — expected, no manifests); test 11 PASS (`gh attestation verify` exit 0, JSON bundle cert decodes to github.com/PabloPereiraBalestra/repo-trust/.github/workflows/security.yml@refs/tags/v0.2.0, commit 1284a80 — matches this repo's own workflow and push). Spec v2-draft → **v2 final** (all gating tests now pass). | commit 1284a80 (release v0.2.0) | session % 11→20 | actual points 9
 - [MECHANICAL] S — Push C2 + validate test §4 14: workflow `codeql` verde, análisis con category=/language:actions, tool.name=CodeQL en el feed junto a Trivy/Scorecard, 0 alertas abiertas. Default-setup (`CodeQL`) confirmado ausente tras la deshabilitación de C2. | commit 3bd4087 (pushed) | session % 10→11 | actual points 1
 - [MECHANICAL] M — C2: codeql.yml instalado — target=`actions` (sin manifests), default-setup de GitHub deshabilitado (`state: not-configured`, confirmado antes/después vía API), codeql-action v3.36.3 SHA-pinned, build-mode none, tests locales 1/2/13 PASS. Implementer, Fable override. | commit 3bd4087 | session % 3→10 | actual points 7

@@ -25,3 +25,4 @@
 {"t":"correction","ref":"3bd4087","set":{"model":"Fable 5"},"note":"snapshot model field is shared/global across concurrent CLI sessions; this block ran on Fable 5 per session context"}
 {"t":"block","ts":"2026-07-05T22:58:16-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":5,"actual":1,"start_pct":10,"end_pct":11,"commit":"3bd4087","clean":true}
 {"t":"block","ts":"2026-07-05T23:01:39-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":3,"actual":9,"start_pct":11,"end_pct":20,"commit":"1284a80 (release v0.2.0)","clean":true}
+{"t":"block","ts":"2026-07-05T23:13:39-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":2,"actual":0,"start_pct":20,"end_pct":20,"commit":"a728603","clean":true}
