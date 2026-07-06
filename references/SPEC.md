@@ -5,6 +5,8 @@
 > v2.1 (2026-07-05, ahead of second-repo validation on `initium`): §0.2.7 gains source-file-based CodeQL target detection (a2) alongside manifest-mapping — a repo can have real source in a supported language with zero package manifests, discovered exactly this way on `initium`. New §0.2.8 defines per-deliverable behavior in degraded (private-repo) mode instead of treating degraded mode as a blanket skip: security.yml and codeql.yml install at full value regardless of visibility; scorecard.yml installs without `publish_results` if it can still produce a local result, else is skipped with reason; the README block becomes a private-repo notice (§1.3) instead of the badge template. Tests 15-16 added.
 >
 > v2.2 (2026-07-06, from installing on `initium` — private repo): security.yml marker v2→v3, adds `actions: read` to the `scan` job. Without it, `upload-sarif` fails on private repos with "Resource not accessible by integration" (confirmed against `github/codeql-action` issue #2117) — the actual on-repo failure that surfaced this, not a hypothetical. New §3.9 documents it; fixed unconditionally (not visibility-gated) since it's harmless on public repos.
+>
+> v2.3 (2026-07-06, same initium install, next failure in the same run): code scanning (Security tab) itself needs a GitHub Code Security/GHAS license on private repos — confirmed live ("Code scanning is not enabled for this repository"). Broader than the Scorecard-only gate assumed in v2.1: it also blocks Trivy's SARIF upload in security.yml and CodeQL's `analyze` step entirely. security.yml marker v3→v4 and codeql.yml marker v1→v2 add `continue-on-error: true` to the affected steps; §0.2.8 corrected (codeql.yml now conditional on license, not just target detection); new §3.10. Known residual gap noted in BACKLOG: `continue-on-error` can't distinguish "no license" from "CodeQL found something" on an unlicensed repo, since analyze does both in one call.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
@@ -27,9 +29,9 @@ Verify each §1 deliverable:
 
 | Deliverable | Check |
 |---|---|
-| `.github/workflows/security.yml` | exists AND contains marker `# repo-trust:security` (current version: v3) |
+| `.github/workflows/security.yml` | exists AND contains marker `# repo-trust:security` (current version: v4) |
 | `.github/workflows/scorecard.yml` | exists AND contains marker `# repo-trust:scorecard` (current version: v1) |
-| `.github/workflows/codeql.yml` | exists AND contains marker `# repo-trust:codeql` (current version: v1) — only required when §0.2.7 finds at least one analyzable target; ➖ (not a missing deliverable) otherwise |
+| `.github/workflows/codeql.yml` | exists AND contains marker `# repo-trust:codeql` (current version: v2) — only required when §0.2.7 finds at least one analyzable target AND §0.2.8 confirms code scanning is licensed for this repo; ➖ (not a missing deliverable) otherwise |
 | README badges block | markers `<!-- repo-trust:start -->` / `<!-- repo-trust:end -->` present |
 | `.github/dependabot.yml` | exists (any content counts; merge, don't clobber) |
 | `SECURITY.md` | exists at repo root |
@@ -58,11 +60,15 @@ If ANY item is missing, installation covers only the missing items. Re-running t
    - (b) Independently of (a)/(a2), if `.github/workflows/` is non-empty, `actions` is always an analyzable target (CodeQL analyzes GitHub Actions workflow files as their own language).
    - If the union of (a), (a2) and (b) is empty, report `➖ CodeQL — sin objetivo analizable` and skip §1.7 entirely (parallel to the license-scan-with-no-manifests case in §3.3); this is not drift.
    - (c) Check for a pre-existing GitHub-managed "default setup" for code scanning (`gh api repos/{owner}/{repo}/code-scanning/default-setup`). If enabled: report it, explain that GitHub does not run default setup and an advanced (workflow-file) setup on the same repo simultaneously (confirm the current exact interaction at §0.3 time — this is resolve-at-run-time, GitHub's behavior here has changed before), and ask before disabling default setup via `gh api -X PATCH .../code-scanning/default-setup -f state=not-configured` in favor of the versioned, marker-governed, SHA-pinned advanced workflow (consistent with every other deliverable in this spec). Skip silently only if the user declines — then report CodeQL as not installed by repo-trust, default setup left as-is.
-8. **Degraded-mode deliverable scope** (private repos, continuing from §0.2.3): not every §1 deliverable behaves the same under degraded mode. RESOLVE at §0.3 time whether `ossf/scorecard-action`'s `publish_results` (or the analysis itself) functions at all against a private repo — Scorecard's public API/viewer indexes public repos; do not assume from memory whether a private-repo run produces any usable score.
-   - `security.yml` (Trivy scan + SBOM/attestation on release): full value regardless of visibility — the Security tab is private-repo-scoped but fully functional. Always install.
-   - `codeql.yml`: unaffected by visibility (§0.2.7 target detection and its value are independent of who can see the repo). Always install when a target exists.
-   - `scorecard.yml`: install **without** `publish_results: true` if §0.3 confirms the analysis still runs and writes a local SARIF result (Security-tab value, no public score); **skip entirely** with a stated reason if it cannot produce any result for a private repo. Never set `publish_results: true` on a private repo (§0.2.3) — there is no public viewer to publish to.
-   - README badges block (§1.3): **skip** — no public badge or public API to link to. Install a short private-repo notice instead, between the same markers, stating what runs (Security tab, SBOM per release if applicable) and that no public signal exists while the repo stays private (ties to §3.1's degraded-mode definition and the §5.1 report's private-repo rendering rule).
+8. **Degraded-mode deliverable scope** (private repos, continuing from §0.2.3): not every §1 deliverable behaves the same under degraded mode, and the gate is broader than Scorecard alone — RESOLVE at §0.3 time (both confirmed live 2026-07-06 against `initium`, a personal-account private repo with no GitHub Advanced Security / Code Security license):
+   - Whether `ossf/scorecard-action`'s analysis functions at all against a private repo (it requires GHAS; without it, the action cannot run, published or not).
+   - Whether **code scanning itself** (the Security-tab feature that receives SARIF, used by both Trivy's upload in security.yml and by CodeQL entirely) is enabled for the repo — on private repos this also requires a GitHub Code Security license (`gh api repos/{owner}/{repo}` → `security_and_analysis`; `null`/absent on a personal-account repo is a strong signal, but the authoritative check is attempting the upload and reading its error, since the field isn't reliably populated for non-org repos).
+   
+   Per-deliverable behavior:
+   - `security.yml`: **always install**, regardless of visibility or license. The Trivy scan step and its `exit-code`/`severity` gate run and produce a real, honest pass/fail on every push/PR — that value is independent of the Security tab. The "Upload SARIF to Security tab" step gets `continue-on-error: true` (marker v3→v4, §3.10) so a missing Code Security license degrades *that step only* to a soft warning, never the job — the gate itself (Trivy's own exit code, evaluated *before* upload is attempted) still fails the job red on real findings, unaffected.
+   - `codeql.yml`: **install only if** code scanning is confirmed enabled (§0.2.8 check above) — CodeQL's `analyze` step both computes and uploads in one call, so without the license it produces no usable output at all (not even a partial one), unlike Trivy which still gates locally either way. If code scanning is unavailable, skip §1.7 entirely and report the reason (this is a visibility/licensing gate, distinct from and evaluated after §0.2.7's target-detection gate — a repo can have a perfectly good CodeQL target and still get skipped here for lack of license). Where installed, the `analyze` step also gets `continue-on-error: true` (marker v1→v2, §3.10) as a stopgap until a cleaner `upload: false` + artifact split (like scorecard.yml's own pattern) is designed — flagged in BACKLOG, not solved here.
+   - `scorecard.yml`: install **without** `publish_results: true` only if §0.3 confirms GHAS makes the analysis runnable at all; **skip entirely** with a stated reason otherwise (this is initium's case — personal account, no GHAS, the action cannot run published or not). Never set `publish_results: true` on a private repo (§0.2.3) — there is no public viewer to publish to.
+   - README badges block (§1.3): **skip** — no public badge or public API to link to. Install a short private-repo notice instead, between the same markers, stating what runs (Security tab if licensed, Actions-run-log gate always, SBOM per release if applicable) and that no public signal exists while the repo stays private (ties to §3.1's degraded-mode definition and the §5.1 report's private-repo rendering rule).
    - `dependabot.yml`, `SECURITY.md`: unaffected by visibility, install as usual.
    - `scorecard_history.jsonl` (§5.3): not created if scorecard.yml is skipped (no score to log); if scorecard.yml runs without publishing, log the local score anyway — it is still a real number, just not a citable public one, and the LinkedIn trust block (§5.2) never had access to it in degraded mode regardless (§3.1: no LinkedIn number from a private repo).
 
@@ -99,7 +105,7 @@ All idempotent: check before create, merge before write, never clobber user cont
 ### 1.1 `.github/workflows/security.yml`
 
 ```yaml
-# repo-trust:security v3
+# repo-trust:security v4
 name: security
 on:
   push:
@@ -134,6 +140,7 @@ jobs:
           <RESOLVE:scanners-input>: 'vuln,secret,license'
       - name: Upload SARIF to Security tab
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@<RESOLVE:sha> # <RESOLVE:tag>
         with:
           sarif_file: 'trivy-results.sarif'
@@ -275,10 +282,10 @@ Offer once per repo: enable branch protection on the default branch via `gh api`
 
 ### 1.7 `.github/workflows/codeql.yml`
 
-Only written when §0.2.7 finds at least one analyzable target (a mapped language, or `actions` because `.github/workflows/` is non-empty). One `matrix.language` entry per detected target — this repo, having no package manifests, gets exactly `actions`.
+Only written when §0.2.7 finds at least one analyzable target (a mapped language, or `actions` because `.github/workflows/` is non-empty) AND §0.2.8 confirms code scanning is licensed for this repo (always true on public repos; on private repos requires GitHub Code Security/GHAS — otherwise skip entirely, §0.2.8). One `matrix.language` entry per detected target — this repo, having no package manifests, gets exactly `actions`.
 
 ```yaml
-# repo-trust:codeql v1
+# repo-trust:codeql v2
 name: codeql
 on:
   push:
@@ -310,12 +317,13 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: <RESOLVE:build-mode-per-language>
       - name: Perform CodeQL analysis
+        continue-on-error: true
         uses: github/codeql-action/analyze@<RESOLVE:sha> # <RESOLVE:tag>
         with:
           category: '/language:${{ matrix.language }}'
 ```
 
-Design decisions (fixed, do not renegotiate per repo): weekly schedule (matches Scorecard's cadence, catches newly-disclosed patterns in unchanged code); one matrix entry per detected target rather than one workflow per language, so results stay in a single file under the marker; `build-mode: none` for `actions` and other interpreted/config languages, `autobuild` as the default for compiled languages unless §0.3 resolution says a given language needs `manual` (if `autobuild` later fails for a specific repo, that is a per-repo finding for phase C to surface, not a reason to change this template). Findings land in the same code-scanning alerts feed as Trivy's SARIF upload (§1.1) — phase B (§5.0) reads both from one API call, distinguished by `tool.name`; the schematic report (§5.1) keeps them under the single `Escaneo` header, since both are scan results, not a new category.
+Design decisions (fixed, do not renegotiate per repo): weekly schedule (matches Scorecard's cadence, catches newly-disclosed patterns in unchanged code); one matrix entry per detected target rather than one workflow per language, so results stay in a single file under the marker; `build-mode: none` for `actions` and other interpreted/config languages, `autobuild` as the default for compiled languages unless §0.3 resolution says a given language needs `manual` (if `autobuild` later fails for a specific repo, that is a per-repo finding for phase C to surface, not a reason to change this template); `continue-on-error: true` on the analyze step (§3.10) so a missing Code Security license on a private repo degrades gracefully rather than permanently reddening a workflow that can never pass. Findings land in the same code-scanning alerts feed as Trivy's SARIF upload (§1.1) — phase B (§5.0) reads both from one API call, distinguished by `tool.name`; the schematic report (§5.1) keeps them under the single `Escaneo` header, since both are scan results, not a new category.
 
 **Conflict with GitHub's default setup**: this workflow is an "advanced setup". If §0.2.7(c) found default setup enabled and the user approved disabling it, do that via `gh api` *before* this file is written and pushed — writing an advanced-setup workflow while default setup is still on can leave code scanning in a broken or ambiguous state (exact current behavior is `<RESOLVE>` per §0.3).
 
@@ -345,6 +353,7 @@ Everything else in §0.3 is resolve-at-run-time by design.
 7. **CodeQL with zero analyzable targets** (no mapped language, no `.github/workflows/`): §1.7 is skipped and reported ➖, same honesty rule as license scanning with no manifests (§3.3). Its absence is not drift.
 8. **CodeQL vs. GitHub's default setup**: the two cannot coexist cleanly on the same repo (§0.2.7c). repo-trust always proposes the advanced (workflow-file) setup, for the same reason every other deliverable here is a versioned file rather than a repo-settings toggle: it is auditable, SHA-pinned, and governed by the marker/upgrade rules in §0.1 — not something a stranger reading the repo has to trust blindly.
 9. **`upload-sarif` on private repos needs `actions: read`**: without it the `scan` job's SARIF upload fails with "Resource not accessible by integration" trying to read workflow-run metadata, even with `security-events: write` already granted — a private-repo-only failure mode (confirmed live against `github/codeql-action` issue #2117; the default `GITHUB_TOKEN` is more restricted on private repos, same root cause as §0.3's Scorecard/GHAS finding). Discovered installing on `initium` (2026-07-05); fixed unconditionally in the `security.yml` template (marker v2→v3) rather than gated on visibility.
+10. **Code scanning (Security tab) requires a GitHub Code Security license on private repos** — same GHAS-family gate as Scorecard, but broader: it blocks Trivy's SARIF *upload* (not the scan/gate itself) in security.yml, and blocks CodeQL's `analyze` step entirely (confirmed live: "Code scanning is not enabled for this repository", discovered on `initium` immediately after fixing constraint 9). Fixed with `continue-on-error: true` on the affected upload/analyze steps (security.yml marker v3→v4, codeql.yml marker v1→v2) so a missing license degrades gracefully to a soft warning instead of a permanently red, uninformative run — Trivy's actual vulnerability gate (its `exit-code`, evaluated before the upload step) is unaffected and still fails the job on real findings. Known gap: this masks CodeQL's real findings and the license gap identically on unlicensed private repos, since `analyze` computes and uploads in one call — a cleaner fix (split `upload: false` + artifact, mirroring scorecard.yml's own `results_file`/`upload-artifact` pattern) is tracked in BACKLOG, not solved here.
 
 ---
 
@@ -364,10 +373,11 @@ Run all that don't require a push locally; report the rest as pending-first-push
 10. *(post-release)* Test release carries `sbom.cdx.json`; the asset parses as JSON with `"bomFormat": "CycloneDX"`.
 11. *(post-release)* The downloaded `sbom.cdx.json` verifies: `gh attestation verify sbom.cdx.json --repo {owner}/{repo}` exits 0 and names this repo's `security` workflow as the builder.
 12. *(post-audit)* `scorecard_history.jsonl` consistent with the live score per §5.3.
-13. `codeql.yml` (when §0.2.7 found a target): marker present, `matrix.language` covers every detected target with no extras, `build-mode` set per §0.3 resolution for each, permissions match the template exactly (no broader scope).
+13. `codeql.yml` (when §0.2.7 found a target AND §0.2.8 confirms code scanning is licensed): marker present, `matrix.language` covers every detected target with no extras, `build-mode` set per §0.3 resolution for each, permissions match the template exactly (no broader scope), `continue-on-error: true` on the analyze step (§3.10).
 14. *(post-push)* CodeQL run completes for every matrix language; results appear in code-scanning alerts (`tool.name` = "CodeQL"), distinguishable from Trivy's entries in the same feed.
 15. On a manifest-less repo with real source in a CodeQL-supported language: §0.2.7(a2) detects that language as a target (test 13 still applies to the resulting file) — proves source-based detection isn't gated on a package manifest.
 16. On a private repo: README block (§1.3) is replaced by the private-repo notice, not the badge template (no `{owner}/{repo}` badge URLs present); `scorecard.yml` is either absent-with-reason or present without `publish_results: true` per §0.2.8 — never `publish_results: true` on a private repo.
+17. On a private repo without a Code Security license: `codeql.yml` is absent with a stated reason (not installed-but-broken); `security.yml`'s Trivy gate (`exit-code`) still fails the job on real CRITICAL/HIGH findings even though the SARIF upload step is soft-failing.
 
 ---
 
