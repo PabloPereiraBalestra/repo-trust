@@ -1,4 +1,4 @@
-# repo-trust:codeql v2
+# repo-trust:codeql v3
 name: codeql
 on:
   push:
@@ -30,7 +30,15 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: none
       - name: Perform CodeQL analysis
+        id: analyze
         continue-on-error: true
         uses: github/codeql-action/analyze@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3.36.3
         with:
           category: '/language:${{ matrix.language }}'
+      - name: Upload SARIF as artifact
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: ${{ steps.analyze.outputs.sarif-output }}
+          retention-days: 5
