@@ -65,6 +65,9 @@ v2.1-v2.4 (2026-07-05/06): second-repo validation on `initium` (private, no pack
 §8's packaging gate (2 repos validated) is met.
 Still open: a third validation case (public repo with real package manifests) is needed to prove SBOM richness / real license scan / manifest-mapped CodeQL / Scorecard on a licensed-by-default public repo — neither repo-trust (no source) nor initium (no manifests, no license) can show that path. Not yet scoped, needs the user to name a repo.
 
+## Session closed 2026-07-06
+Repo stable (clean tree, all pushed). Nothing pending — only the gated third-validation-case item awaits the user naming a repo. Next session: either scope that (public repo w/ manifests) if named, or start fresh from BACKLOG.md for new work. 5h pool: 33% used, resets 2026-07-06 12:20 local.
+
 ## Minimal context to resume
 - Project: repo-trust (https://github.com/PabloPereiraBalestra/repo-trust), a Claude Code skill repo being bootstrapped with the session-budget protocol, whose backlog is applying REPO_TRUST_SPEC.md's own kickoff to this same repo.
 - **Second local repo note**: initium (C:\Users\pablo\OneDrive\Documentos\GitHub\initium) has its OWN separate, unrelated session-budget setup (own CLAUDE.md/SESSION_STATE.md/budget_log.jsonl) for different work, and frequently has a live parallel Claude Code session active in the same local working directory. Any future work touching initium must: read that repo's own files (git status, target files) fresh each time, never touch its CLAUDE.md/SESSION_STATE.md/budget_log.jsonl/.claude//.remember/, stage by exact filename only (never `git add -A`), and re-`git fetch` immediately before any push (the remote moves from that parallel session, sometimes mid-block).

@@ -36,3 +36,4 @@
 {"t":"block","ts":"2026-07-06T09:15:32-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":2,"actual":1,"start_pct":27,"end_pct":28,"commit":"n/a (personal skills dir, outside git)","clean":true}
 {"t":"block","ts":"2026-07-06T09:39:02-03:00","tag":"DESIGN","size":"S","model":"Fable 5","est":5,"actual":3,"start_pct":28,"end_pct":30,"commit":"e57d4ae","clean":true,"parallel":true}
 {"t":"block","ts":"2026-07-06T09:39:02-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":5,"actual":2,"start_pct":30,"end_pct":32,"commit":"ffb5f65,98a2b4f (initium)","clean":true,"parallel":true}
+{"t":"session_end","ts":"2026-07-06T10:10:49-03:00","end_pct":33,"cut_reason":"work_done","blocks_done":24,"buffer":10,"cap":20,"mode":"auto"}
