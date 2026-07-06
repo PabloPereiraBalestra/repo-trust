@@ -1,6 +1,8 @@
 # Repo Trust System — Implementation Spec (v2)
 
 > v2 (2026-07-05, finalized on repo-trust itself): adds §5.0 single-invocation flow (install → operate → advise), §5.1 schematic report format, SLSA build-provenance attestation of the release SBOM (security marker v1→v2, §0.1 upgrade semantics) and the README verify-yourself block, §5.3 score history (`scorecard_history.jsonl`, citable trend), §5.2 prompts rewritten to the flow, and §1.7 CodeQL static analysis (target detection incl. the `actions` workflow-analysis language, default-setup conflict handling). All gating acceptance tests (§4, including 10/11/14) passed on this repo's push and v0.2.0 release. v1 behavior is unchanged where v2 doesn't say otherwise.
+>
+> v2.1 (2026-07-05, ahead of second-repo validation on `initium`): §0.2.7 gains source-file-based CodeQL target detection (a2) alongside manifest-mapping — a repo can have real source in a supported language with zero package manifests, discovered exactly this way on `initium`. New §0.2.8 defines per-deliverable behavior in degraded (private-repo) mode instead of treating degraded mode as a blanket skip: security.yml and codeql.yml install at full value regardless of visibility; scorecard.yml installs without `publish_results` if it can still produce a local result, else is skipped with reason; the README block becomes a private-repo notice (§1.3) instead of the badge template. Tests 15-16 added.
 
 Public, verifiable security signals for a GitHub repository: CI security scan (vulnerabilities + secrets + licenses) with results in the repo's Security tab, a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge (third-party 0–10 score) in the README.
 
@@ -48,7 +50,19 @@ If ANY item is missing, installation covers only the missing items. Re-running t
 4. **Default branch**: `gh repo view --json defaultBranchRef`.
 5. **Ecosystems**: detect package manifests (`pyproject.toml`, `requirements*.txt`, `poetry.lock`, `package.json`, `Cargo.toml`, `go.mod`, etc.). If none (e.g. PBIP/TMDL repos): report that the SBOM will be thin and license scan near-empty; secret scanning and Scorecard still apply. Ask whether to proceed.
 6. **Existing workflows**: list `.github/workflows/`. Never modify files without the `repo-trust` marker. If a pre-existing workflow already runs Trivy or Scorecard, report and ask before adding a parallel one.
-7. **CodeQL target detection**: determine what CodeQL has to analyze. (a) Map §0.2.5's detected package manifests to CodeQL-supported languages using the current list resolved in §0.3 — do not assume the list from memory, it changes. (b) Independently of manifests, if `.github/workflows/` is non-empty, `actions` is always an analyzable target (CodeQL analyzes GitHub Actions workflow files as their own language). If the resulting target set is empty, report `➖ CodeQL — sin objetivo analizable` and skip §1.x entirely (parallel to the license-scan-with-no-manifests case in §3.3); this is not drift. (c) Check for a pre-existing GitHub-managed "default setup" for code scanning (`gh api repos/{owner}/{repo}/code-scanning/default-setup`). If enabled: report it, explain that GitHub does not run default setup and an advanced (workflow-file) setup on the same repo simultaneously (confirm the current exact interaction at §0.3 time — this is resolve-at-run-time, GitHub's behavior here has changed before), and ask before disabling default setup via `gh api -X PATCH .../code-scanning/default-setup -f state=not-configured` in favor of the versioned, marker-governed, SHA-pinned advanced workflow (consistent with every other deliverable in this spec). Skip silently only if the user declines — then report CodeQL as not installed by repo-trust, default setup left as-is.
+7. **CodeQL target detection**: determine what CodeQL has to analyze. Two independent detection paths feed the same target set — a manifest alone or a manifest-less codebase can each trigger a target, and either without the other is common (confirmed 2026-07-05: a real repo can have source in a CodeQL-supported language with zero package manifests).
+   - (a) **Manifest-mapped**: map §0.2.5's detected package manifests to CodeQL-supported languages using the current list resolved in §0.3 — do not assume the list from memory, it changes.
+   - (a2) **Source-file-mapped**: independently of manifests, scan the repo tree (excluding standard dependency/build directories: `node_modules`, `vendor`, `dist`, `build`, `.venv`, etc.) for file extensions matching a CodeQL-supported language's typical source extensions (e.g. `.py`, `.js`/`.ts`, `.go`, `.java`/`.kt`, `.cs`, `.rb`, `.swift`, `.c`/`.cpp`/`.h`) — confirm the current extension-to-language mapping at §0.3 time, same as (a). A single matching file is enough to add that language as a target; this exists precisely for codebases with real source but no manifest (scripts-only repos, notebooks-adjacent repos, etc.) — do not require a manifest as a gate for source that plainly exists.
+   - (b) Independently of (a)/(a2), if `.github/workflows/` is non-empty, `actions` is always an analyzable target (CodeQL analyzes GitHub Actions workflow files as their own language).
+   - If the union of (a), (a2) and (b) is empty, report `➖ CodeQL — sin objetivo analizable` and skip §1.7 entirely (parallel to the license-scan-with-no-manifests case in §3.3); this is not drift.
+   - (c) Check for a pre-existing GitHub-managed "default setup" for code scanning (`gh api repos/{owner}/{repo}/code-scanning/default-setup`). If enabled: report it, explain that GitHub does not run default setup and an advanced (workflow-file) setup on the same repo simultaneously (confirm the current exact interaction at §0.3 time — this is resolve-at-run-time, GitHub's behavior here has changed before), and ask before disabling default setup via `gh api -X PATCH .../code-scanning/default-setup -f state=not-configured` in favor of the versioned, marker-governed, SHA-pinned advanced workflow (consistent with every other deliverable in this spec). Skip silently only if the user declines — then report CodeQL as not installed by repo-trust, default setup left as-is.
+8. **Degraded-mode deliverable scope** (private repos, continuing from §0.2.3): not every §1 deliverable behaves the same under degraded mode. RESOLVE at §0.3 time whether `ossf/scorecard-action`'s `publish_results` (or the analysis itself) functions at all against a private repo — Scorecard's public API/viewer indexes public repos; do not assume from memory whether a private-repo run produces any usable score.
+   - `security.yml` (Trivy scan + SBOM/attestation on release): full value regardless of visibility — the Security tab is private-repo-scoped but fully functional. Always install.
+   - `codeql.yml`: unaffected by visibility (§0.2.7 target detection and its value are independent of who can see the repo). Always install when a target exists.
+   - `scorecard.yml`: install **without** `publish_results: true` if §0.3 confirms the analysis still runs and writes a local SARIF result (Security-tab value, no public score); **skip entirely** with a stated reason if it cannot produce any result for a private repo. Never set `publish_results: true` on a private repo (§0.2.3) — there is no public viewer to publish to.
+   - README badges block (§1.3): **skip** — no public badge or public API to link to. Install a short private-repo notice instead, between the same markers, stating what runs (Security tab, SBOM per release if applicable) and that no public signal exists while the repo stays private (ties to §3.1's degraded-mode definition and the §5.1 report's private-repo rendering rule).
+   - `dependabot.yml`, `SECURITY.md`: unaffected by visibility, install as usual.
+   - `scorecard_history.jsonl` (§5.3): not created if scorecard.yml is skipped (no score to log); if scorecard.yml runs without publishing, log the local score anyway — it is still a real number, just not a citable public one, and the LinkedIn trust block (§5.2) never had access to it in degraded mode regardless (§3.1: no LinkedIn number from a private repo).
 
 ### 0.3 Volatile data resolution — MANDATORY before writing any file
 
@@ -69,6 +83,8 @@ Nothing marked `<RESOLVE>` in §1 may be written from memory. Resolve each again
 | Current CodeQL-supported language identifiers (for mapping §0.2.7 manifests) and whether `actions` (GitHub Actions workflow analysis) is GA and its exact `languages:` value | GitHub CodeQL docs (supported languages page) |
 | Current interaction between default setup and advanced (workflow-based) setup for code scanning on the same repo | GitHub code-scanning / default-setup docs |
 | Per detected compiled language (java-kotlin, go, c-cpp, csharp, swift): whether `build-mode: none` is supported or `autobuild`/`manual` is required | GitHub CodeQL docs (per-language build-mode) |
+| Current source-extension-to-CodeQL-language mapping (for §0.2.7a2 detection) | GitHub CodeQL docs (supported languages page) |
+| Whether Scorecard analysis / `scorecard-action` produces any usable result against a private repo (with or without `publish_results`) | OpenSSF Scorecard docs / scorecard-action README |
 
 All third-party actions are pinned by **full commit SHA** with the version tag as a trailing comment. This is both supply-chain hygiene and rewarded by Scorecard's dependency-pinning check (confirm exact check name in scorecard docs/checks.md when resolving).
 
@@ -222,6 +238,16 @@ gh attestation verify sbom.cdx.json --repo {owner}/{repo}
 
 The verify-yourself block exists because a checkable claim is categorically more credible than an asserted one — it is part of the block between markers, so it upgrades with the block (§0.1). Exact `gh` syntax is `<RESOLVE>`-class: confirm against current docs at install time (§0.3). On repos without attestations installed yet (marker < v2), omit the provenance line and command.
 
+**Private-repo variant** (§0.2.8): replace the whole block above with this notice instead — no public badges, no public API, no verify-yourself commands (there is nothing public to check):
+
+````markdown
+<!-- repo-trust:start -->
+**Seguridad (repo privado):** escaneo de vulnerabilidades/secretos/licencias corriendo en CI (pestaña Security), sin score ni badge público mientras el repo sea privado.
+<!-- repo-trust:end -->
+````
+
+Same marker pair, same upgrade rule (§0.1) — the *content* is visibility-conditional, decided fresh at every install/upgrade (a repo going public later gets the full block on the next run, not manually).
+
 ### 1.4 `.github/dependabot.yml`
 
 Create if absent; if present, merge missing `updates` entries only. Always include `github-actions`; add one block per ecosystem detected in §0.2.5 with the key confirmed in §0.3.
@@ -307,7 +333,7 @@ Everything else in §0.3 is resolve-at-run-time by design.
 
 ## 3. Known constraints
 
-1. **Private repo** = no badge, no public score, no LinkedIn number. Degraded mode is Security-tab-only and must be explicitly approved.
+1. **Private repo** = no badge, no public score, no LinkedIn number. Degraded mode is Security-tab-only and must be explicitly approved. Per-deliverable behavior in degraded mode is defined in §0.2.8 — not every deliverable is simply "skipped".
 2. **Solo maintainer ceiling**: code-review (and similar collaboration) checks score low structurally. Expected; document, don't chase. The score's upward trend is the content, not a perfect 10.
 3. **Repos without package manifests**: SBOM thin, license scan near-empty. Secret scanning and Scorecard still deliver value. State this in the install report.
 4. **First Scorecard publish lag**: results and badge can take minutes after the first successful run; a 404 on the badge before the first publish is not a failure.
@@ -336,6 +362,8 @@ Run all that don't require a push locally; report the rest as pending-first-push
 12. *(post-audit)* `scorecard_history.jsonl` consistent with the live score per §5.3.
 13. `codeql.yml` (when §0.2.7 found a target): marker present, `matrix.language` covers every detected target with no extras, `build-mode` set per §0.3 resolution for each, permissions match the template exactly (no broader scope).
 14. *(post-push)* CodeQL run completes for every matrix language; results appear in code-scanning alerts (`tool.name` = "CodeQL"), distinguishable from Trivy's entries in the same feed.
+15. On a manifest-less repo with real source in a CodeQL-supported language: §0.2.7(a2) detects that language as a target (test 13 still applies to the resulting file) — proves source-based detection isn't gated on a package manifest.
+16. On a private repo: README block (§1.3) is replaced by the private-repo notice, not the badge template (no `{owner}/{repo}` badge URLs present); `scorecard.yml` is either absent-with-reason or present without `publish_results: true` per §0.2.8 — never `publish_results: true` on a private repo.
 
 ---
 
