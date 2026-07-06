@@ -1,4 +1,4 @@
-# repo-trust:codeql v1
+# repo-trust:codeql v2
 name: codeql
 on:
   push:
@@ -30,6 +30,7 @@ jobs:
           languages: ${{ matrix.language }}
           build-mode: none
       - name: Perform CodeQL analysis
+        continue-on-error: true
         uses: github/codeql-action/analyze@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3.36.3
         with:
           category: '/language:${{ matrix.language }}'

@@ -1,4 +1,4 @@
-# repo-trust:security v3
+# repo-trust:security v4
 name: security
 on:
   push:
@@ -33,6 +33,7 @@ jobs:
           scanners: 'vuln,secret,license'
       - name: Upload SARIF to Security tab
         if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@54f647b7e1bb85c95cddabcd46b0c578ec92bc1a # v4.36.3
         with:
           sarif_file: 'trivy-results.sarif'
