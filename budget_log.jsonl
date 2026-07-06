@@ -26,3 +26,5 @@
 {"t":"block","ts":"2026-07-05T22:58:16-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":5,"actual":1,"start_pct":10,"end_pct":11,"commit":"3bd4087","clean":true}
 {"t":"block","ts":"2026-07-05T23:01:39-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":3,"actual":9,"start_pct":11,"end_pct":20,"commit":"1284a80 (release v0.2.0)","clean":true}
 {"t":"block","ts":"2026-07-05T23:13:39-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":2,"actual":0,"start_pct":20,"end_pct":20,"commit":"a728603","clean":true}
+{"t":"block","ts":"2026-07-05T23:53:22-03:00","tag":"DESIGN","size":"M","model":"Fable 5","est":12,"actual":2,"start_pct":25,"end_pct":27,"commit":"466a089","clean":true,"parallel":true}
+{"t":"block","ts":"2026-07-05T23:56:15-03:00","tag":"MECHANICAL","size":"S","model":"Fable 5","est":5,"actual":1,"start_pct":27,"end_pct":28,"commit":"n/a (research/preflight only, no file changes)","clean":true}
