@@ -229,18 +229,18 @@ Insert between markers; if markers exist, replace the content between them (upgr
 [![security](<RESOLVE:actions-badge-url>)](https://github.com/{owner}/{repo}/actions/workflows/security.yml)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/{owner}/{repo}/badge)](https://scorecard.dev/viewer/?uri=github.com/{owner}/{repo})
 
-Cada release incluye su SBOM (CycloneDX) como asset, con provenance atestada (SLSA).
+Every release includes its SBOM (CycloneDX) as an asset, with attested provenance (SLSA).
 
-<details><summary>Verificalo vos mismo</summary>
+<details><summary>Verify it yourself</summary>
 
 ```sh
-# Score de Scorecard (tercero independiente, criterios públicos)
+# Scorecard score (independent third party, public criteria)
 curl -s https://api.scorecard.dev/projects/github.com/{owner}/{repo} | jq .score
 
-# SBOM del último release
+# SBOM from the latest release
 gh release download --repo {owner}/{repo} --pattern 'sbom.cdx.json'
 
-# Provenance del SBOM (quién lo construyó, en qué workflow, desde qué commit)
+# SBOM provenance (who built it, in which workflow, from which commit)
 gh attestation verify sbom.cdx.json --repo {owner}/{repo}
 ```
 
@@ -254,7 +254,7 @@ The verify-yourself block exists because a checkable claim is categorically more
 
 ````markdown
 <!-- repo-trust:start -->
-**Seguridad (repo privado):** escaneo de vulnerabilidades/secretos/licencias corriendo en CI (pestaña Security), sin score ni badge público mientras el repo sea privado.
+**Security (private repo):** vulnerability/secret/license scanning running in CI (Security tab), no public score or badge while the repo stays private.
 <!-- repo-trust:end -->
 ````
 
@@ -276,7 +276,7 @@ updates:
 
 ### 1.5 `SECURITY.md`
 
-Only if absent. Minimal vulnerability disclosure policy in Spanish (repo audience) or English (if repo docs are English): where to report, expected response time. Feeds Scorecard's security-policy check.
+Only if absent. Minimal vulnerability disclosure policy in English: where to report, expected response time. Feeds Scorecard's security-policy check.
 
 ### 1.6 Branch protection (optional, ask first)
 
@@ -333,7 +333,7 @@ jobs:
           retention-days: 5
 ```
 
-Design decisions (fixed, do not renegotiate per repo): weekly schedule (matches Scorecard's cadence, catches newly-disclosed patterns in unchanged code); one matrix entry per detected target rather than one workflow per language, so results stay in a single file under the marker; `build-mode: none` for `actions` and other interpreted/config languages, `autobuild` as the default for compiled languages unless §0.3 resolution says a given language needs `manual` (if `autobuild` later fails for a specific repo, that is a per-repo finding for phase C to surface, not a reason to change this template); `continue-on-error: true` on the analyze step (§3.10) so a missing Code Security license on a private repo degrades gracefully rather than permanently reddening a workflow that can never pass; the unconditional artifact-upload step (`if: always()`, marker v2→v3, §3.10) closes the resulting gap — `analyze`'s own `sarif-output` (the absolute path to its generated SARIF, produced regardless of whether the Code Scanning upload itself succeeds) is preserved as a downloadable artifact on every run, licensed or not, so a repo without a Code Security license still gets real, inspectable CodeQL findings instead of losing them silently to a soft-failed upload — no license pre-detection needed, since the artifact step never depends on Code Scanning succeeding. Findings land in the same code-scanning alerts feed as Trivy's SARIF upload (§1.1) — phase B (§5.0) reads both from one API call, distinguished by `tool.name`; the schematic report (§5.1) keeps them under the single `Escaneo` header, since both are scan results, not a new category.
+Design decisions (fixed, do not renegotiate per repo): weekly schedule (matches Scorecard's cadence, catches newly-disclosed patterns in unchanged code); one matrix entry per detected target rather than one workflow per language, so results stay in a single file under the marker; `build-mode: none` for `actions` and other interpreted/config languages, `autobuild` as the default for compiled languages unless §0.3 resolution says a given language needs `manual` (if `autobuild` later fails for a specific repo, that is a per-repo finding for phase C to surface, not a reason to change this template); `continue-on-error: true` on the analyze step (§3.10) so a missing Code Security license on a private repo degrades gracefully rather than permanently reddening a workflow that can never pass; the unconditional artifact-upload step (`if: always()`, marker v2→v3, §3.10) closes the resulting gap — `analyze`'s own `sarif-output` (the absolute path to its generated SARIF, produced regardless of whether the Code Scanning upload itself succeeds) is preserved as a downloadable artifact on every run, licensed or not, so a repo without a Code Security license still gets real, inspectable CodeQL findings instead of losing them silently to a soft-failed upload — no license pre-detection needed, since the artifact step never depends on Code Scanning succeeding. Findings land in the same code-scanning alerts feed as Trivy's SARIF upload (§1.1) — phase B (§5.0) reads both from one API call, distinguished by `tool.name`; the schematic report (§5.1) keeps them under the single `Scan` header, since both are scan results, not a new category.
 
 **Conflict with GitHub's default setup**: this workflow is an "advanced setup". If §0.2.7(c) found default setup enabled and the user approved disabling it, do that via `gh api` *before* this file is written and pushed — writing an advanced-setup workflow while default setup is still on can leave code scanning in a broken or ambiguous state (exact current behavior is `<RESOLVE>` per §0.3).
 
@@ -397,7 +397,7 @@ Run all that don't require a push locally; report the rest as pending-first-push
 
 Every invocation runs three phases in order. The v1 split — installation as the skill, audit as a separate bolted-on prompt — is superseded: an "audit" is simply phases B+C of the same flow, and a kickoff is A+B+C.
 
-**Phase A — Install what's missing.** §0 preflight in full (including §0.3 volatile-data resolution whenever anything will be written), then the §1 deliverables that §0.1 found missing. On a fully-installed repo this phase is a verified no-op (§4 test 7). Output: the install report (§5.1) when anything was written; otherwise a single line `➖ instalación completa — nada que escribir`.
+**Phase A — Install what's missing.** §0 preflight in full (including §0.3 volatile-data resolution whenever anything will be written), then the §1 deliverables that §0.1 found missing. On a fully-installed repo this phase is a verified no-op (§4 test 7). Output: the install report (§5.1) when anything was written; otherwise a single line `➖ installation complete — nothing to write`.
 
 **Phase B — Operate (live reads; the only write is the §5.3 history append).** Read live, never from memory:
 
@@ -443,38 +443,38 @@ Rules:
 
 - Every line: glyph first, one short clause, then the value/link if any.
 - Never soften ❌ into ⚠️. Degraded means "working with a stated limitation"; failing means failing. Same honesty rule as the badge (trust model above): the remediation is fixing or opening an issue, never re-labeling.
-- ⚠️ and ➖ lines carry their reason in the same line, one clause ("⚠️ SBOM delgado — repo sin manifests de paquetes").
-- Private repo (§3.1): Scorecard/badge lines render ❌ with "repo privado — modo degradado, sin score público"; scan lines stay live via the Security tab. This IS the degraded-mode report; no separate format.
-- Labels in Spanish (repo audience); glyphs carry the state, so the format survives translation.
+- ⚠️ and ➖ lines carry their reason in the same line, one clause ("⚠️ thin SBOM — repo has no package manifests").
+- Private repo (§3.1): Scorecard/badge lines render ❌ with "private repo — degraded mode, no public score"; scan lines stay live via the Security tab. This IS the degraded-mode report; no separate format.
+- Labels in English (repo audience); glyphs carry the state, so the format survives translation.
 
 **Group headers (fixed order; omit a group only if all its lines would be ➖):**
 
-1. `Escaneo` — security workflow state, Trivy CRITICAL/HIGH counts, secrets
+1. `Scan` — security workflow state, Trivy CRITICAL/HIGH counts, secrets
 2. `Scorecard` — score, badge liveness, weakest checks
 3. `SBOM · Release` — latest release, SBOM asset presence/validity
-4. `Política` — SECURITY.md, dependabot, branch protection, license posture
+4. `Policy` — SECURITY.md, dependabot, branch protection, license posture
 
 **The three report types:**
 
-1. **Install report** (end of kickoff): one line per §1 deliverable — created / already present (➖ with "ya instalado") / skipped with reason — then each pending post-push test as a ⚠️ line.
-2. **Audit report**: one line per live check under the four headers, closing with a single drift line (✅ `sin deriva respecto del spec` or ❌ + what drifted).
-3. **LinkedIn trust block**: at most 4 glyph-led lines in Spanish, built exclusively from live reads: score with public-viewer link, latest release with SBOM link, what is scanned, and (once attestations exist) a provenance/verify line. Feed constraints: LinkedIn strips markdown — glyphs, plain text and bare URLs only. A datum that cannot be read live is omitted and the omission stated, never reconstructed from memory.
+1. **Install report** (end of kickoff): one line per §1 deliverable — created / already present (➖ with "already installed") / skipped with reason — then each pending post-push test as a ⚠️ line.
+2. **Audit report**: one line per live check under the four headers, closing with a single drift line (✅ `no drift from the spec` or ❌ + what drifted).
+3. **LinkedIn trust block**: at most 4 glyph-led lines in English, built exclusively from live reads: score with public-viewer link, latest release with SBOM link, what is scanned, and (once attestations exist) a provenance/verify line. Feed constraints: LinkedIn strips markdown — glyphs, plain text and bare URLs only. A datum that cannot be read live is omitted and the omission stated, never reconstructed from memory.
 
 **Example (audit report):**
 
 ```
-Escaneo
-✅ workflow security verde (main)
-✅ 0 hallazgos CRITICAL/HIGH
+Scan
+✅ security workflow green (main)
+✅ 0 CRITICAL/HIGH findings
 Scorecard
-✅ score 5.8 — badge vivo → https://scorecard.dev/viewer/?uri=github.com/{owner}/{repo}
-⚠️ checks débiles: code-review, branch-protection — mantenedor solo (§3.2)
+✅ score 5.8 — badge live → https://scorecard.dev/viewer/?uri=github.com/{owner}/{repo}
+⚠️ weak checks: code-review, branch-protection — solo maintainer (§3.2)
 SBOM · Release
-✅ v0.1.0 con sbom.cdx.json válido
-Política
-✅ SECURITY.md presente, dependabot activo
-➖ licencias — sin manifests de paquetes
-✅ sin deriva respecto del spec
+✅ v0.1.0 with a valid sbom.cdx.json
+Policy
+✅ SECURITY.md present, dependabot active
+➖ licenses — no package manifests
+✅ no drift from the spec
 ```
 
 ### 5.2 Operating prompts
@@ -484,35 +484,35 @@ The prompts map onto the §5.0 phases: kickoff = A+B+C, audit = B+C, and the Lin
 Kickoff (once per repo):
 
 ```
-Arrancamos con el protocolo "Repo trust" (REPO_TRUST_SPEC.md), flujo completo §5.0 (fases A+B+C). Todas las salidas en formato §5.1.
-Fase A — instalar:
-0. Preflight §0 completo: estado, entorno, visibilidad, ecosistemas. Si el repo es privado, pará y decímelo antes de seguir.
-1. Resolvé los datos volátiles (§0.3) contra las fuentes oficiales y mostrame la tabla resuelta.
-2. Escribí los deliverables §1 que falten, idempotente, sin tocar workflows ajenos.
-3. Corré los tests §4 que no requieren push y listame los pendientes.
-4. Mostrame el diff completo y esperá mi OK antes de commitear.
-Fase B — operar: lecturas en vivo según §5.0 (workflow security y alertas, Scorecard con historial §5.3, release y SBOM, attestation si está instalada).
-Fase C — aconsejar: mostrame como máximo 3 recomendaciones de la tabla §5.0.
+Starting the "Repo trust" protocol (REPO_TRUST_SPEC.md), full flow §5.0 (phases A+B+C). All output in §5.1 format.
+Phase A — install:
+0. Full §0 preflight: state, environment, visibility, ecosystems. If the repo is private, stop and tell me before continuing.
+1. Resolve the volatile data (§0.3) against official sources and show me the resolved table.
+2. Write the missing §1 deliverables, idempotently, without touching workflows that aren't ours.
+3. Run the §4 tests that don't require a push and list the pending ones for me.
+4. Show me the full diff and wait for my OK before committing.
+Phase B — operate: live reads per §5.0 (security workflow and alerts, Scorecard with §5.3 history, release and SBOM, attestation if installed).
+Phase C — advise: show me at most 3 recommendations from the §5.0 table.
 ```
 
-Audit (per repo, mensual o cuando algo se vea raro):
+Audit (per repo, monthly or whenever something looks off):
 
 ```
-Auditoría repo-trust: corré las fases B+C de §5.0.
-Fase B — lecturas en vivo, nunca de memoria: workflow security (última corrida en el branch default y alertas de code scanning por severidad), Scorecard vía API (score, checks más débiles, badge vivo; con lectura exitosa del score, apendeá a scorecard_history.jsonl según §5.3), última release con sbom.cdx.json válido y su staleness, y attestation de provenance una vez instalada.
-Emití el reporte de auditoría en formato §5.1: líneas con glifo bajo los cuatro headers (Escaneo, Scorecard, SBOM · Release, Política), delta de score según §5.3 cuando haya historial, y cerrá con la línea de deriva (✅ sin deriva, o ❌ y qué derivó).
-Fase C — decime como máximo 3 recomendaciones de la tabla §5.0, ordenadas por impacto en la señal pública.
+repo-trust audit: run phases B+C of §5.0.
+Phase B — live reads, never from memory: security workflow (latest run on the default branch and code-scanning alerts by severity), Scorecard via API (score, weakest checks, live badge; on a successful score read, append to scorecard_history.jsonl per §5.3), latest release with a valid sbom.cdx.json and its staleness, and provenance attestation once installed.
+Emit the audit report in §5.1 format: glyph-led lines under the four headers (Scan, Scorecard, SBOM · Release, Policy), score delta per §5.3 when history exists, and close with the drift line (✅ no drift, or ❌ and what drifted).
+Phase C — tell me at most 3 recommendations from the §5.0 table, ordered by impact on the public signal.
 ```
 
-LinkedIn trust block (a demanda, para posts):
+LinkedIn trust block (on demand, for posts):
 
 ```
-Bloque de confianza para LinkedIn: leé todo EN VIVO, nada sale de memoria. Armá como máximo 4 líneas en español encabezadas por glifo, SIN markdown (LinkedIn lo elimina: glifos, texto plano y URLs peladas nomás):
-1. Score actual de Scorecard con la URL del viewer público; si el historial §5.3 muestra mejora, agregá la tendencia (solo cuando es positiva).
-2. Última release con la URL del asset sbom.cdx.json.
-3. Qué se escanea: vulnerabilidades, secretos, licencias.
-4. Línea de provenance con el one-liner de gh attestation verify, una vez que las attestations estén instaladas.
-Si algún dato no se puede leer en vivo, decime la omisión y omitilo; nunca lo reconstruyas.
+LinkedIn trust block: read everything LIVE, nothing comes from memory. Build at most 4 glyph-led lines in English, with NO markdown (LinkedIn strips it: glyphs, plain text and bare URLs only):
+1. Current Scorecard score with the public viewer URL; if the §5.3 history shows improvement, add the trend (only when positive).
+2. Latest release with the sbom.cdx.json asset URL.
+3. What is scanned: vulnerabilities, secrets, licenses.
+4. Provenance line with the gh attestation verify one-liner, once attestations are installed.
+If any datum can't be read live, tell me the omission and skip it; never reconstruct it.
 ```
 
 ### 5.3 Score history
@@ -531,8 +531,8 @@ The Scorecard score's upward trend is the content (§3.2); this section makes th
 
 **Rendering**:
 
-- *Audit report* (Scorecard group): with ≥2 entries and a change, the score line carries the delta and since-when — `✅ score 6.4 — antes 5.8 (2026-07-05)`. A **drop** renders ⚠️ with the fallen check named (the §5.0 advice table row "score dropped" then owns the recommendation).
-- *LinkedIn trust block*: include the trend line only when the delta is **positive** (`Score OpenSSF: 5.8 → 6.4 desde jul 2026`); with one entry or no improvement, show only the current score. Omitting a negative trend from a post is selection, not fabrication — the current score is always shown live, and the full history stays public in the repo. The audit never omits it.
+- *Audit report* (Scorecard group): with ≥2 entries and a change, the score line carries the delta and since-when — `✅ score 6.4 — up from 5.8 (2026-07-05)`. A **drop** renders ⚠️ with the fallen check named (the §5.0 advice table row "score dropped" then owns the recommendation).
+- *LinkedIn trust block*: include the trend line only when the delta is **positive** (`OpenSSF score: 5.8 → 6.4 since Jul 2026`); with one entry or no improvement, show only the current score. Omitting a negative trend from a post is selection, not fabrication — the current score is always shown live, and the full history stays public in the repo. The audit never omits it.
 
 **Not an install deliverable**: the file is created lazily by the first phase-B run that reads a score; it is absent from §0.1 by design (its absence on a fresh install is not drift).
 
@@ -576,7 +576,7 @@ Draft SKILL.md frontmatter:
 ```yaml
 ---
 name: repo-trust
-description: This skill should be used when the user wants public, verifiable security signals on a GitHub repo - CI scanning with Trivy (vulnerabilities, secrets, licenses), a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge. Trigger on "repo trust", "badges de seguridad", "scorecard", "SBOM del repo", "preparar el repo para publicar", "que el repo dé confianza", or requests to make a repository's security posture visible to downloaders.
+description: This skill should be used when the user wants public, verifiable security signals on a GitHub repo - CI scanning with Trivy (vulnerabilities, secrets, licenses), a CycloneDX SBOM attached to every release, and an OpenSSF Scorecard badge. Trigger on "repo trust", "security badges", "badges de seguridad", "scorecard", "repo SBOM", "SBOM del repo", "prepare the repo for publishing", "preparar el repo para publicar", "make the repo trustworthy", "que el repo dé confianza", or requests to make a repository's security posture visible to downloaders.
 ---
 Run the preflight in references/SPEC.md §0, then follow the spec. Resolve every <RESOLVE> item against official sources before writing files; never from memory.
 ```

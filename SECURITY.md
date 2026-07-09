@@ -1,15 +1,15 @@
-# Política de seguridad
+# Security Policy
 
-Este repositorio distribuye un skill de Claude Code (contenido markdown, sin código ejecutable propio más allá de las plantillas de workflow que instala).
+This repository distributes a Claude Code skill (markdown content, with no executable code of its own beyond the workflow templates it installs).
 
-## Reportar una vulnerabilidad
+## Reporting a vulnerability
 
-Si encontrás una vulnerabilidad de seguridad (por ejemplo, en las plantillas de GitHub Actions que este skill instala, o en su contenido), abrí un [issue privado de seguridad](https://github.com/PabloPereiraBalestra/repo-trust/security/advisories/new) en este repositorio.
+If you find a security vulnerability (for example, in the GitHub Actions templates this skill installs, or in its content), open a [private security advisory](https://github.com/PabloPereiraBalestra/repo-trust/security/advisories/new) on this repository.
 
-- Tiempo de respuesta esperado: 5 días hábiles.
-- No abras un issue público con detalles de la vulnerabilidad antes de que se confirme una corrección.
+- Expected response time: 5 business days.
+- Do not open a public issue with vulnerability details before a fix is confirmed.
 
-## Alcance
+## Scope
 
-- Vulnerabilidades reportadas por el escaneo automatizado (Trivy) quedan visibles en la pestaña Security de este repo.
-- El SBOM (CycloneDX) de cada release lista las dependencias declaradas en ese momento.
+- Vulnerabilities reported by automated scanning (Trivy) are visible in this repo's Security tab.
+- Each release's SBOM (CycloneDX) lists the dependencies declared at that time.
